@@ -1,0 +1,13 @@
+*~
+\#*
+.cache/
+*.eld
+*.elc
+*.pyc
+straight/
+server/
+elpa/
+*.data
+history
+lastdir
+*.html
