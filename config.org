@@ -59,6 +59,11 @@
     (defvar emacs-start-time (current-time)
       "Time Emacs was started.")
 #+END_SRC
+*** Add site-lisp directory
+For custom scripts
+#+BEGIN_SRC emacs-lisp :tangle yes
+(add-to-list 'load-path "~/.emacs.d/site-lisp/")
+#+END_SRC
 ** Load them environment variables
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package exec-path-from-shell
@@ -70,7 +75,13 @@
 ** Internal configuration
 Just copying this verbose now
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package f
+(defun find-config ()
+  "Edit config.org"
+  (interactive)
+  (find-file "~/.emacs.d/config.org"))
+(global-set-key (kbd "C-c I") 'find-config)
+
+(use-package f
   :ensure t)
   (use-package general
   :ensure t)
@@ -904,18 +915,17 @@ Just copying this verbose now
        (projectile-switch-project . ivy--regex-fuzzy))
      ivy-height 15)))
 #+END_SRC
+** Spacemacs theme
+#+BEGIN_SRC emacs-lisp :tangle yes
+(install-pkgs '(spacemacs-theme))
+(load-theme 'spacemacs-light)
+#+END_SRC
 ** Org-mode
 *** Initial configuration
  #+BEGIN_SRC emacs-lisp :tangle yes
- (use-package htmlize :ensure t)
- (use-package plantuml-mode :ensure t)
- (use-package gnuplot :ensure t)
- (use-package org
- :ensure t)
- (use-package org-plus-contrib
- :ensure t)
- (require 'org)
- (require 'org-habit)
+(install-pkgs '(org-plus-contrib htmlize plantuml-mode gnuplot gnuplot-mode))
+(require 'org)
+(require 'org-habit)
  #+END_SRC
 
  Some things org-mode overwrites, I change them back
