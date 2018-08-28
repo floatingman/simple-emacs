@@ -12,3 +12,9 @@ history
 lastdir
 *.html
 /config.el
+/.org-id-locations
+/helm-adaptive-history
+/ido.last
+/org-clock-save.el
+/recentf
+/smex-items
