@@ -95,6 +95,10 @@ Just copying this verbose now
  org-src-fontify-natively t ;; Fontify source blocks
  org-src-tab-acts-natively t ;; indention in src blocks should work
  )
+   ;;;   Customizations go to this file
+(setq custom-file "~/personal/custom.el")
+(when (file-exists-p custom-file)
+  (load custom-file))
 
 (setq
    ;;;   Node.js path from nvm
@@ -103,9 +107,6 @@ Just copying this verbose now
    ;;;   User details
  user-mail-address "dwnewman78@gmail.com"
  user-full-name    "Daniel Newman"
-
-   ;;;   Customizations go to this file
- custom-file (expand-file-name "custom.el" user-emacs-directory)
 
    ;;;   Follow symlinks to the actual file
  find-file-visit-truename t
@@ -1361,7 +1362,7 @@ bindings I use more frequently:
 
     ;; Add new projectile binding for multi-compile
     (helm-projectile-define-key helm-projectile-projects-map
-                                (kbd "M-m")  #'helm-projectile-multi-compile-project)))
+      (kbd "M-m")  #'helm-projectile-multi-compile-project)))
 
 #+END_SRC
 ** Spacemacs theme
