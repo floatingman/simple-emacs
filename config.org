@@ -24,6 +24,8 @@
 
 (unless package--initialized (package-initialize t))
 
+(when (< emacs-major-version 27)
+  (package-initialize))
 
 ;; Install use-package
 (if (package-installed-p 'use-package)
