@@ -205,8 +205,6 @@ Just copying this verbose now
  auto-save-file-name-transforms '((".*" "~/.emacs.d/.cache/auto-save-list" t))
  auto-save-list-file-prefix "~/.emacs.d/.cache/auto-save-list/saves-"
 
-   ;;;   Dired
- dired-dwim-target t
 
    ;;;   Ediff
  ediff-window-setup-function 'ediff-setup-windows-plain ;; Single frame ediff session
@@ -686,6 +684,56 @@ Just copying this verbose now
   (file-name-nondirectory (directory-file-name path)))
 #+END_SRC
 
+** OS Specific
+Setup some variables for use in other config files
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defconst *spell-check-support-enabled* t) ;; Enable with t if you prefer
+(defconst *is-a-mac* (eq system-type 'darwin))
+(defconst *is-windows* (eq system-type 'windows-nt))
+(defconst *is-linux* (eq system-type 'gnu/linux))
+(defconst *is-gui* (not (eq window-system nil)))
+(defvar running-alternate-emacs nil)
+#+END_SRC
+Linux
+,#+BEGIN_SRC emacs-lisp :tangle yes
+(when *is-linux*
+  ;; Whether to use GTK tooltips or emacs ones
+  (setq x-gtk-use-system-tooltips t)
+  (setq dired-listing-switches "-lFaGh1v --group-directories-first"))
+#+END_SRC
+
+Mac OSX
+#+BEGIN_SRC emacs-lisp :tangle yes
+(when *is-a-mac*
+  (if (executable-find "gls")
+      (progn
+        (setq insert-directory-program "gls")
+        (setq dired-listing-switches "-lFaGh1v --group-directories-first"))
+    (setq dired-listing-switches "-ahlF"))
+  (defun copy-from-osx ()
+    "Handle copy/paste intelligently on osx."
+    (let ((pbpaste (purecopy "/usr/bin/pbpaste")))
+      (if (and *is-a-mac*
+               (file-exists-p pbpaste))
+          (let ((tramp-mode nil)
+                (default-directory "~"))
+            (shell-command-to-string pbpaste)))))
+
+  (defun paste-to-osx (text &optional push)
+    (let ((process-connection-type nil))
+      (let ((proc (start-process "pbcopy" "*Messages*" "/usr/bin/pbcopy")))
+        (process-send-string proc text)
+        (process-send-eof proc))))
+  (setq interprogram-cut-function 'paste-to-osx
+        interprogram-paste-function 'copy-from-osx)
+
+  (defun move-file-to-trash (file)
+    "Use `trash' to move FILE to the system trash.
+When using Homebrew, install it using \"brew install trash\"."
+    (call-process (executable-find "trash")
+                  nil 0 nil
+                  file)))
+#+END_SRC
 ** Hungry Delete
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package hungry-delete
@@ -709,7 +757,11 @@ Just copying this verbose now
   :bind ("<f9> k" . keycast-mode))
 #+END_SRC
 
-** Magit is the git magic
+** Pairs work best together
+#+BEGIN_SRC emacs-lisp :tangle yes
+(add-hook 'prog-mode-hook 'electric-pair-mode)
+#+END_SRC
+** Drop down and give me 20, Magit!
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package magit
   :ensure t
@@ -846,6 +898,25 @@ Just copying this verbose now
                                        company-files company-dabbrev)
         company-jedi-python-bin "python"))
 #+END_SRC
+** Buffers
+*** Create a new empty buffer with the press of a key!
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun xah-new-empty-buffer ()
+  "Create anew empty buffer.
+New buffer will be named 'untitled' or 'untitled<2>', 'untitled<3>', etx.
+
+It returns the buffer (for elisp programming).
+URL `http://egroemacs.org/emacs.emacs_new_empty_buffer.html'
+Version 2017-11-01"
+  (interactive)
+  (let (($buf (generate-new-buffer "untitled")))
+    (switch-to-buffer $buf)
+    (funcall initial-major-mode)
+    (setq buffer-offer-save t)
+    $buf
+    ))
+(global-set-key (kbd "<f7>") 'xah-new-empty-buffer)
+#+END_SRC
 ** Language Server Protocol
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package lsp-mode
@@ -877,30 +948,23 @@ Just copying this verbose now
 #+END_SRC
 ** Python
 #+BEGIN_SRC emacs-lisp :tangle yes
-;; (use-package anaconda-mode
-;;   :ensure t
-;;   :hook
-;;   ((python-mode . anaconda-mode)
-;;    (python-mode . anaconda-eldoc-mode))
-;;   :init
-;;   (progn
-;;     (use-package company-anaconda
-;;       :ensure t
-;;       :config
-;;       (require 'rx))
-;;     (with-eval-after-load 'company
-;;       (add-to-list 'company-backends '(company-anaconda :with company-capf)))
-;;    (setq anaconda-mode-installation-directory "~/.emacs.d/.cache/anaconda-mode")))
 (when (executable-find "ipython")
   (setq python-shell-interpreter "ipython"))
-(use-package pyvenv :ensure t)
-(use-package pipenv :ensure t)
+(use-package pyenv-mode :ensure t)
 (use-package company-jedi :ensure t)
 (use-package elpy
   :ensure t
   :config
   (elpy-enable))
 (use-package eglot :ensure t)
+(defun ssbb-pyenv-hook ()
+  "Automatically activates pyenv version if .python-version file exists."
+  (f-traverse-upwards
+   (lambda (path)
+     (let ((pyenv-version-path (f-expand ".python-version" path)))
+       (if (f-exists? pyenv-version-path)
+           (pyenv-mode-set (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
+(add-hook 'find-file-hook 'ssbb-pyenv-hook)
 #+END_SRC
 ** C and C++
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -981,8 +1045,8 @@ bindings I use more frequently:
    ("M-g p" . helm-do-ag-project-root)
    ("M-g G" . helm-grep-do-git-grep))
   :init
-  (defvar deos/helm-display-help-buffer-regexp '("*.*Helm.*Help.**"))
-  (defvar deos/helm-display-buffer-regexp
+  (defvar my/helm-display-help-buffer-regexp '("*.*Helm.*Help.**"))
+  (defvar my/helm-display-buffer-regexp
     `("*.*helm.**"
       (display-buffer-in-side-window)
       (inhibit-same-window . t)
@@ -990,19 +1054,19 @@ bindings I use more frequently:
       (window-width . 0.6)
       (window-height . 0.4)))
 
-  (defun deos/display-helm-window (buffer &optional resume)
+  (defun my/display-helm-window (buffer &optional resume)
     "Display the Helm window."
     (let ((display-buffer-alist
-           (list deos/helm-display-help-buffer-regexp
+           (list my/helm-display-help-buffer-regexp
                  ;; this or any specialized case of Helm buffer must be
-                 ;; added AFTER `deos/helm-display-buffer-regexp'.
-                 ;; Otherwise, `deos/helm-display-buffer-regexp' will
+                 ;; added AFTER `my/helm-display-buffer-regexp'.
+                 ;; Otherwise, `my/helm-display-buffer-regexp' will
                  ;; be used before
-                 ;; `deos/helm-display-help-buffer-regexp' and display
+                 ;; `my/helm-display-help-buffer-regexp' and display
                  ;; configuration for normal Helm buffer is applied for helm
                  ;; help buffer, making the help buffer unable to be
                  ;; displayed.
-                 deos/helm-display-buffer-regexp)))
+                 my/helm-display-buffer-regexp)))
       (helm-default-display-buffer buffer)))
 
   (setq helm-grep-default-command
@@ -1029,7 +1093,7 @@ bindings I use more frequently:
         ;; open helm buffer inside current window, don't occupy whole other window
         helm-split-window-inside-p t
         ;; display using my function, not helm's (helm is too slow here)
-        helm-display-function #'deos/display-helm-window
+        helm-display-function #'my/display-helm-window
         ;; display helm in a separate frame
         ;; helm-display-function 'helm-display-buffer-in-own-frame
         ;; reuse frame so display is faster on Emacs 26+
@@ -1407,32 +1471,63 @@ bindings I use more frequently:
   (setq groovy-indent-offset 2))
 #+END_SRC
 ** Dired
-Sort files and directories by different criteria (Doesn't work in MacOS)
-
+Setup some awesome dired defaults
 #+BEGIN_SRC emacs-lisp :tangle yes
-(defun xah-dired-sort ()
-  "Sort dired dir listing in different ways.
-Prompt for a choice.
-URL `http://ergoemacs.org/emacs/dired_sort.html'
-Version 2015-07-30"
-  (interactive)
-  (let ($sort-by $arg)
-    (setq $sort-by (ido-completing-read "Sort by:" '( "date" "size" "name" "dir")))
-    (cond
-     ((equal $sort-by "name") (setq $arg "-Al --si --time-style long-iso "))
-     ((equal $sort-by "date") (setq $arg "-Al --si --time-style long-iso -t"))
-     ((equal $sort-by "size") (setq $arg "-Al --si --time-style long-iso -S"))
-     ((equal $sort-by "dir") (setq $arg "-Al --si --time-style long-iso --group-directories-first"))
-     (t (error "logic error 09535" )))
-    (dired-sort-other $arg )))
-(define-key dired-mode-map (kbd "s") 'xah-dired-sort)
+(defun my/dired-mode-hook ()
+  (setq-local truncate-lines t))
+
+(use-package dired
+  :bind ("C-x C-j" . dired-jump)
+  :config
+  (use-package dired-x
+    :init (setq-default dired-omit-files-p t)
+    :config
+    (add-to-list 'dired-omit-extensions ".DS_Store"))
+  (customize-set-variable 'diredp-hide-details-initially-flag nil)
+  (use-package dired-aux
+        :init
+        (use-package dired-async
+          :ensure async))
+      (put 'dired-find-alternate-file 'disabled nil)
+      (setq ls-lisp-dirs-first t
+            dired-recursive-copies 'always
+            dired-recursive-deletes 'always
+            dired-dwim-target t
+            ;; -F marks links with @
+            dired-ls-F-marks-symlinks t
+            delete-by-moving-to-trash t
+            ;; Don't auto refresh dired
+            global-auto-revert-non-file-buffers nil
+            wdired-allow-to-change-permissions t)
+      (define-key dired-mode-map (kbd "C-M-u") #'dired-up-directory)
+      (define-key dired-mode-map (kbd "M-o") #'my/dired-open)
+      (define-key dired-mode-map (kbd "C-x C-q") #'wdired-change-to-wdired-mode)
+      (bind-key "l" #'dired-up-directory dired-mode-map)
+      (bind-key "M-!" #'async-shell-command dired-mode-map)
+      (add-hook 'dired-mode-hook #'my/dired-mode-hook))
 #+END_SRC
 
-Always copy and delete directories recursively
+Quickly preview the things under the cursor
 #+BEGIN_SRC emacs-lisp :tangle yes
-(setq dired-recursive-copies (quote always)) ; "always" means no asking
-(setq dired-recusive-deletes (quote top)) ; "top" means ask once
+(use-package quick-preview
+  :ensure t
+  :init
+  (global-set-key (kbd "C-c q") 'quick-preview-at-point)
+  (define-key dired-mode-map (kbd "Q") 'quick-preview-at-point))
 #+END_SRC
+
+Pretty Icons in the dired buffers
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package all-the-icons
+  :ensure t)
+(use-package all-the-icons-dired
+  :ensure t
+  :diminish all-the-icons-dired-mode
+  :init
+  (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
+#+END_SRC
+
+
 ** Skeleton Code
 #+BEGIN_SRC emacs-lisp :tangle yes
 (require 'skeleton)
@@ -1487,7 +1582,7 @@ Some things org-mode overwrites, I change them back
 Turn on some defaults
 #+BEGIN_SRC emacs-lisp :tangle yes
 (setq org-startup-indented 'f)
-(defun deos/org-mode-hook ()
+(defun my/org-mode-hook ()
   (interactive)
   (setq-local fill-column 100)
   (when (fboundp 'turn-on-auto-fill)
@@ -1516,7 +1611,7 @@ Global bindings
 
 (add-hook 'org-mode-hook #'hl-line-mode)
 (add-hook 'org-agenda-mode-hook #'hl-line-mode)
-(add-hook 'org-mode-hook #'deos/org-mode-hook)
+(add-hook 'org-mode-hook #'my/org-mode-hook)
 (when (boundp 'org-export-backends)
   (custom-set-variables '(org-export-backends '(ascii beamer html latex md))))
 ;; Allow's electric-pair-mode to surround things with = and ~ in org-mode
@@ -1825,7 +1920,7 @@ buffer like this:
 ,* TODO
 [2010-08-05 Thu 21:06]
 
-[[file:~/deos/init-org.org::*Capture%20Tasks%20is%20about%20being%20Fast][Capture Tasks is about being Fast]]
+[[file:~/my/init-org.org::*Capture%20Tasks%20is%20about%20being%20Fast][Capture Tasks is about being Fast]]
 #+end_src
 
 Enter the details of the TODO item and =C-c C-c= to file it away in refile.org and go right back to
@@ -2328,7 +2423,7 @@ I have the following org-mode settings for clocking:
 ;; with the clock time
 ;;(setq org-clock-idle-time 15)
 
-(defun deos/org-clock-in ()
+(defun my/org-clock-in ()
   (interactive)
   (org-clock-in '(4)))
 
@@ -3392,16 +3487,6 @@ Org-mode can export to a variety of publishing formats including (but not limite
          :with-toc t
          :html-preamble t)
 
-        ;; Org-mode files for DEOS itself
-        ("DEOS"
-         :base-directory ,(file-truename "~/deos/")
-         :base-extension "org"
-         :publishing-directory
-         "/ssh:writequit.org:~/www/deos/"
-         :publishing-function org-html-publish-to-html
-         :with-toc t
-         :html-preamble t)
-
         ;; Org-mode files for ~/org files
         ("org-org"
          :base-directory ,(file-truename "~/org/")
@@ -3690,7 +3775,7 @@ little wonky looking.
 :END:
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-(defun deos/org-inline-css-hook (exporter)
+(defun my/org-inline-css-hook (exporter)
   "Insert custom inline css to automatically set the
     background of code to whatever theme I'm using's background"
   (when (eq exporter 'html)
@@ -3710,7 +3795,7 @@ little wonky looking.
 Uncomment to automatically set background color to theme background
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-;; (add-hook 'org-export-before-processing-hook #'deos/org-inline-css-hook)
+;; (add-hook 'org-export-before-processing-hook #'my/org-inline-css-hook)
 #+END_SRC
 
 **** Automatically adding CUSTOM_ID to headlines in a file
@@ -3723,7 +3808,7 @@ Uncomment to automatically set background color to theme background
   :init
   (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
 
-  (defun deos/org-custom-id-get (&optional pom create prefix)
+  (defun my/org-custom-id-get (&optional pom create prefix)
     "Get the CUSTOM_ID property of the entry at point-or-marker POM.
        If POM is nil, refer to the entry at point. If the entry does
        not have an CUSTOM_ID, the function returns nil. However, when
@@ -3742,7 +3827,7 @@ Uncomment to automatically set background color to theme background
           (org-id-add-location id (buffer-file-name (buffer-base-buffer)))
           id)))))
 
-  (defun deos/org-add-ids-to-headlines-in-file ()
+  (defun my/org-add-ids-to-headlines-in-file ()
     "Add CUSTOM_ID properties to all headlines in the current
        file which do not already have one. Only adds ids if the
        `auto-id' option is set to `t' in the file somewhere. ie,
@@ -3752,7 +3837,7 @@ Uncomment to automatically set background color to theme background
       (widen)
       (goto-char (point-min))
       (when (re-search-forward "^#\\+OPTIONS:.*auto-id:t" (point-max) t)
-        (org-map-entries (lambda () (deos/org-custom-id-get (point) 'create))))))
+        (org-map-entries (lambda () (my/org-custom-id-get (point) 'create))))))
 
   ;; automatically add ids to saved org-mode headlines
   (add-hook 'org-mode-hook
@@ -3761,7 +3846,7 @@ Uncomment to automatically set background color to theme background
                         (lambda ()
                           (when (and (eq major-mode 'org-mode)
                                      (eq buffer-read-only nil))
-                            (deos/org-add-ids-to-headlines-in-file)))))))
+                            (my/org-add-ids-to-headlines-in-file)))))))
 #+END_SRC
 
 **** Tuning the way Agenda looks
@@ -4296,6 +4381,296 @@ Follow these steps https://github.com/myuhe/org-gcal.el/blob/master/README.org
 #+BEGIN_SRC emacs-lisp :tangle yes
 (setq debug-on-error nil)
 (setq debug-on-quit nil)
+#+END_SRC
+** Eshell
+Tweaking the eshell to give'em ehell
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun my/setup-eshell ()
+  (interactive)
+;; turn off semantic-mode in eshell buffers Needed?
+  (semantic-mode -1)
+  ;; turn off hl-line-mode
+  (local-set-key (kbd "M-P") 'eshell-previous-prompt)
+  (local-set-key (kbd "M-N") 'eshell-next-prompt)
+  (local-set-key (kbd "M-R") 'eshell-previous-matching-input))
+#+END_SRC
+
+A nice helper to sudo-edit a file
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun sudoec (file)
+  (interactive)
+  (find-file (concat "/sudo::" (expand-file-name file))))
+#+END_SRC
+
+Setup some nice settings for eshell
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package eshell
+  :commands (eshell eshell-command)
+  :bind ("C-c m" . eshell)
+  :init
+  (require 'em-smart)
+  (setq eshell-glob-case-insensitive nil
+        eshell-error-if-no-glob nil
+        eshell-scroll-to-bottom-on-input nil
+        eshell-where-to-jump 'begin
+        eshell-review-quick-commands nil
+        eshell-smart-space-goes-to-end t)
+  ;; Initialize "smart" mode
+  ;;(add-hook 'eshell-mode-hook #'eshell-smart-initialize)
+  :config
+  (defalias 'emacs 'find-file)
+  (defalias 'hff 'hexl-find-file)
+  (defalias 'sec 'sudoec)
+  (setenv "PAGER" "cat")
+  (use-package esh-opt
+    :config
+    (use-package em-cmpl)
+    (use-package em-prompt
+      :init
+      (with-eval-after-load 'em-prompt
+        (defun eshell-next-prompt (n)
+          "Move to end of Nth next prompt in the buffer. See `eshell-prompt-regexp'."
+          (interactive "p")
+          (re-search-forward eshell-prompt-regexp nil t n)
+          (when eshell-highlight-prompt
+          (while (not (get-text-property (line-beginning-position) 'read-only))
+            (re-search-forward eshell-prompt-regexp nil t n)))
+          (eshell-skip-prompt))
+
+        (defun eshell-previous-prompt (n)
+          "Move to end of Nth previous prompt in the buffer. See `eshell-prompt-regexp'."
+          (interactive "p")
+          (backward-char)
+          (eshell-next-prompt (- n)))))
+    (use-package em-term)
+
+    ;; Shared history.
+    (defvar eshell-history-global-ring nil
+      "The history ring shared across Eshell sessions.")
+
+    ;; (defun eshell-hist-use-global-history ()
+    ;;   "Make Eshell history shared across different sessions."
+    ;;   (unless eshell-history-global-ring
+    ;;     (let (eshell-history-ring)
+    ;;       (when eshell-history-file-name
+    ;;         (eshell-read-history nil t))
+    ;;       (setq eshell-history-global-ring eshell-history-ring))
+    ;;     (unless eshell-history-ring (setq eshell-history-global-ring (make-ring eshell-history-size))))
+    ;;   (setq eshell-history-ring eshell-history-global-ring))
+    ;; (add-hook 'eshell-mode-hook 'eshell-hist-use-global-history)
+
+    (setq eshell-cmpl-cycle-completions nil
+          ;; auto truncate after 12k lines
+          eshell-buffer-maximum-lines 12000
+          ;; history size
+          eshell-history-size 500
+          ;; buffer shorthand -> echo foo > #'buffer
+          eshell-buffer-shorthand t
+          ;; my prompt is easy enough to see
+          eshell-highlight-prompt nil
+          ;; treat 'echo' like shell echo
+          eshell-plain-echo-behavior t
+          ;; add -lh to the `ls' flags
+          eshell-ls-initial-args "-lh")
+
+    ;; Visual commands
+    (setq eshell-visual-commands '("vi" "screen" "top" "less" "more" "lynx"
+                                   "ncftp" "pine" "tin" "trn" "elm" "vim"
+                                   "nmtui" "alsamixer" "htop" "el" "elinks"
+                                   "ssh" "nethack" "dtop" "dstat"))
+    (setq eshell-visual-subcommands '(("git" "log" "diff" "show")
+                                      ("vagrant" "ssh")))
+
+    (defun my/truncate-eshell-buffers ()
+      "Truncates all eshell buffers"
+      (interactive)
+      (save-current-buffer
+        (dolist (buffer (buffer-list t))
+          (set-buffer buffer)
+          (when (eq major-mode 'eshell-mode)
+            (eshell-truncate-buffer)))))
+
+    ;; After being idle for 5 seconds, truncate all the eshell-buffers if
+    ;; needed. If this needs to be canceled, you can run `(cancel-timer
+    ;; my/eshell-truncate-timer)'
+    (setq my/eshell-truncate-timer
+          (run-with-idle-timer 5 t #'my/truncate-eshell-buffers))
+
+    (defun eshell/cds ()
+      "Change directory to the project's root."
+      (eshell/cd (locate-dominating-file default-directory ".git")))
+
+    (defalias 'eshell/l 'eshell/ls)
+    (defalias 'eshell/ll 'eshell/ls)
+
+    (defun eshell/ec (pattern)
+      (if (stringp pattern)
+          (find-file pattern)
+        (mapc #'find-file (mapcar #'expand-file-name pattern))))
+    (defalias 'e 'eshell/ec)
+    (defalias 'ee 'find-file-other-window)
+
+    (defun eshell/d (&rest args)
+      (dired (pop args) "."))
+
+    (defun eshell/clear ()
+      "Clear the eshell buffer"
+      (interactive)
+      (let ((eshell-buffer-maximum-lines 0))
+        (eshell-truncate-buffer)
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (eshell-send-input)))))
+
+  (defun eshell/icat (&rest args)
+    "Display image(s)."
+    (let ((elems (eshell-flatten-list args)))
+      (while elems
+        (eshell-printn
+         (propertize " "
+                     'display (create-image (expand-file-name (car elems)))))
+        (setq elems (cdr elems))))
+    nil)
+
+  (add-hook 'eshell-mode-hook #'my/setup-eshell)
+
+  ;; See eshell-prompt-function below
+  (setq eshell-prompt-regexp "^[^#$\n]* [#$] ")
+
+  ;; So the history vars are defined
+  (require 'em-hist)
+  (if (boundp 'eshell-save-history-on-exit)
+      ;; Don't ask, just save
+      (setq eshell-save-history-on-exit t))
+
+  ;; See: https://github.com/kaihaosw/eshell-prompt-extras
+  (use-package eshell-prompt-extras
+    :ensure t
+    :init
+    (progn
+      (setq eshell-highlight-prompt nil
+            epe-git-dirty-char " Ϟ"
+            ;; epe-git-dirty-char "*"
+            eshell-prompt-function 'epe-theme-dakrone)))
+
+  (defun eshell/magit ()
+    "Function to open magit-status for the current directory"
+    (interactive)
+    (magit-status default-directory)
+    nil))
+
+  (use-package esh-autosuggest
+    :ensure t
+    :hook (eshell-mode . esh-autosuggest-mode))
+#+END_SRC
+
+Create eshell buffers with the press of a button
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun my/create-or-switch-to-delta-buffer ()
+  "Switch to the *eshell delta* buffer, or create it"
+  (interactive)
+  (if (get-buffer "*eshell-delta*")
+      (switch-to-buffer "*eshell-delta*")
+    (let ((eshell-buffer-name "*eshell-delta*"))
+      (eshell))))
+
+(global-set-key (kbd "C-x d") 'my/create-or-switch-to-delta-buffer)
+
+(defun my/create-or-switch-to-eshell-1 ()
+  "Switch to the *eshell* buffer, or create it"
+  (interactive)
+  (if (get-buffer "*eshell*")
+      (switch-to-buffer "*eshell*")
+    (let ((eshell-buffer-name "*eshell*"))
+      (eshell))))
+
+(defun my/create-or-switch-to-eshell-2 ()
+  "Switch to the *eshell*<2> buffer, or create it"
+  (interactive)
+  (if (get-buffer "*eshell*<2>")
+      (switch-to-buffer "*eshell*<2>")
+    (let ((eshell-buffer-name "*eshell*<2>"))
+      (eshell))))
+
+(defun my/create-or-switch-to-eshell-3 ()
+  "Switch to the *eshell*<3> buffer, or create it"
+  (interactive)
+  (if (get-buffer "*eshell*<3>")
+      (switch-to-buffer "*eshell*<3>")
+    (let ((eshell-buffer-name "*eshell*<3>"))
+      (eshell))))
+
+(defun my/create-or-switch-to-eshell-4 ()
+  "Switch to the *eshell*<4> buffer, or create it"
+  (interactive)
+  (if (get-buffer "*eshell*<4>")
+      (switch-to-buffer "*eshell*<4>")
+    (let ((eshell-buffer-name "*eshell*<4>"))
+      (eshell))))
+
+(defun my/create-all-eshell-buffers ()
+  "Create all my normal eshell buffers"
+  (interactive)
+  (let ((eshell-buffer-name "*eshell*")
+        (default-directory "~/"))
+    (eshell))
+  (let ((eshell-buffer-name "*eshell*<2>")
+        (default-directory "~/")) (eshell))
+  (let ((eshell-buffer-name "*eshell*<3>")
+        (default-directory "~/gitrepo"))
+    (eshell))
+  (let ((eshell-buffer-name "*eshell-delta*")
+        (default-directory "~/.emacs.d"))
+    (eshell))
+  (let ((eshell-buffer-name "*eshell downloads*")
+        (default-directory "~/Downloads"))
+    (eshell)))
+
+(global-set-key (kbd "M-@") #'my/create-all-eshell-buffers)
+
+(global-set-key (kbd "H-1") 'my/create-or-switch-to-eshell-1)
+(global-set-key (kbd "H-2") 'my/create-or-switch-to-eshell-2)
+(global-set-key (kbd "H-3") 'my/create-or-switch-to-eshell-3)
+(global-set-key (kbd "H-4") 'my/create-or-switch-to-eshell-4)
+(global-set-key (kbd "s-1") 'my/create-or-switch-to-eshell-1)
+(global-set-key (kbd "s-2") 'my/create-or-switch-to-eshell-2)
+(global-set-key (kbd "s-3") 'my/create-or-switch-to-eshell-3)
+(global-set-key (kbd "s-4") 'my/create-or-switch-to-eshell-4)
+(global-set-key (kbd "M-1") 'my/create-or-switch-to-eshell-1)
+(global-set-key (kbd "M-2") 'my/create-or-switch-to-eshell-2)
+(global-set-key (kbd "M-3") 'my/create-or-switch-to-eshell-3)
+(global-set-key (kbd "M-4") 'my/create-or-switch-to-eshell-4)
+#+END_SRC
+
+Open an eshell window in the current directory of the open buffer
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun eshell-here ()
+  "Opens up a new shell in the directory associated with the
+current buffer's file. The eshell is renamed to match that
+directory to make multiple eshell windows easier."
+  (interactive)
+  (let* ((parent (if (buffer-file-name)
+                     (file-name-directory (buffer-file-name))
+                   default-directory))
+         (height (/ (window-total-height) 3))
+         (name   (car (last (split-string parent "/" t)))))
+    (split-window-vertically (- height))
+    (other-window 1)
+    (eshell "new")
+    (rename-buffer (concat "*eshell: " name "*"))
+
+    (insert (concat "ls"))
+    (eshell-send-input)))
+
+(global-set-key (kbd "C-!") #'eshell-here)
+#+END_SRC
+
+Quickly close eshell window
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun eshell/x ()
+  "Closes the EShell session and gets rid of the EShell window."
+   (delete-window)
+   (eshell/exit))
 #+END_SRC
 ** Hooks
 Run some things when everything is loaded.
