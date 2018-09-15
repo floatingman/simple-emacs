@@ -713,6 +713,14 @@ When using Homebrew, install it using \"brew install trash\"."
                   nil 0 nil
                   file)))
 #+END_SRC
+
+** Which key am I using
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package which-key
+  :ensure t
+  :config
+  (which-key-mode))
+#+END_SRC
 ** Hide minor modes from modeline
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package minions
