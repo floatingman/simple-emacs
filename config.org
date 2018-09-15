@@ -737,7 +737,11 @@ When using Homebrew, install it using \"brew install trash\"."
 #+END_SRC
 
 ** Pairs work best together
+Electric pairs It's Electric
 #+BEGIN_SRC emacs-lisp :tangle yes
+(electric-pair-mode 1)
+#+END_SRC
+,#+BEGIN_SRC emacs-lisp :tangle yes
 (defun xah-insert-bracket-pair (@left-bracket @right-bracket &optional @wrap-method)
   "Insert brackets around selection, word, at point, and maybe move cursor in between.
 
