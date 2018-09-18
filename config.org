@@ -1411,9 +1411,12 @@ Version 2017-11-01"
 #+END_SRC
 ** Python
 #+BEGIN_SRC emacs-lisp :tangle yes
-(when (executable-find "ipython")
-  (setq python-shell-interpreter "ipython"))
-(use-package pyenv-mode :ensure t)
+(setq python-shell-interpreter "ipython"
+        python-shell-interpreter-args "--simple-prompt -i")
+(use-package pyenv-mode
+  :ensure t
+  :config
+  (pyenv-mode))
 (use-package company-jedi :ensure t)
 (use-package elpy
   :ensure t
