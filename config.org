@@ -5205,6 +5205,12 @@ Quickly close eshell window
    (delete-window)
    (eshell/exit))
 #+END_SRC
+** Sunrise Commander
+File management at it's best
+#+BEGIN_SRC emacs-lisp :tangle yes
+(add-to-list 'load-path "~/.emacs.d/site-lisp/sunrise-commander/")
+(require 'sunrise-commander)
+#+END_SRC
 ** Hooks
 Run some things when everything is loaded.
 #+BEGIN_SRC emacs-lisp :tangle yes
