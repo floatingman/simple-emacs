@@ -713,13 +713,47 @@ When using Homebrew, install it using \"brew install trash\"."
                   nil 0 nil
                   file)))
 #+END_SRC
+** God Mode
+An alternative to GAAAWWWWWWWWWWWD mode
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package god-mode
+  :ensure t
+  :config
+  (god-mode)
+  (global-set-key (kbd "<escape>") 'god-local-mode)
+  (define-key god-local-mode-map (kbd "z") 'repeat)
+  (define-key god-local-mode-map (kbd "i") 'god-local-mode)
+  (defun my-update-cursor ()
+  (setq cursor-type (if (or god-local-mode buffer-read-only)
+                        'box
+                      'bar)))
 
+  (add-hook 'god-mode-enabled-hook 'my-update-cursor)
+  (add-hook 'god-mode-disabled-hook 'my-update-cursor)
+  (require 'god-mode-isearch)
+  (define-key isearch-mode-map (kbd "<escape>") 'god-mode-isearch-activate)
+  (define-key god-mode-isearch-map (kbd "<escape>") 'god-mode-isearch-disable)
+  (global-set-key (kbd "C-x C-1") 'delete-other-windows)
+  (global-set-key (kbd "C-x C-2") 'split-window-below)
+  (global-set-key (kbd "C-x C-3") 'split-window-right)
+  (global-set-key (kbd "C-x C-0") 'delete-window)
+  )
+
+#+END_SRC
 ** Which key am I using
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package which-key
   :ensure t
   :config
   (which-key-mode))
+#+END_SRC
+** How frequent is that key pressed
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package keyfreq
+  :ensure t
+  :init
+  (keyfreq-mode)
+  )
 #+END_SRC
 ** Hide minor modes from modeline
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -1327,12 +1361,6 @@ Version 2016-11-22"
 ** Doom Themes
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package doom-themes :ensure t)
-#+END_SRC
-** Sidebar tree browser
-#+BEGIN_SRC emacs-lisp :tangle yes
-(use-package treemacs
-  :ensure t
-  :bind ("<f9> t" . treemacs))
 #+END_SRC
 ** Ewww page break characters
 #+BEGIN_SRC emacs-lisp :tangle yes

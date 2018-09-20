@@ -6,6 +6,7 @@
         c-electric-colon
         c-electric-slash
         c-electric-star
+        down-list
         electric-newline-and-maybe-indent
         fill-paragraph
         hungry-delete-backward
