@@ -1295,6 +1295,39 @@ Version 2016-11-22"
         magithub-dir "~/.emacs.d/.cache/magithub"))
 #+END_SRC
 
+** Fringe!
+This helps visualize version changes in a file
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package git-gutter
+  :ensure t
+  :when window-system
+  :defer t
+  :bind (("C-x P" . git-gutter:popup-hunk)
+         ("C-x p" . git-gutter:previous-hunk)
+         ("C-x n" . git-gutter:next-hunk)
+         ("C-c G" . git-gutter:popup-hunk))
+  :diminish ""
+  :init
+    (add-hook 'prog-mode-hook #'git-gutter-mode)
+  (add-hook 'text-mode-hook #'git-gutter-mode)
+  :config
+  (use-package git-gutter-fringe
+    :ensure t
+    :init
+    (require 'git-gutter-fringe)
+    (when (fboundp 'define-fringe-bitmap)
+      (define-fringe-bitmap 'git-gutter-fr:added
+        [224 224 224 224 224 224 224 224 224 224 224 224 224
+             224 224 224 224 224 224 224 224 224 224 224 224]
+        nil nil 'center)
+      (define-fringe-bitmap 'git-gutter-fr:modified
+        [224 224 224 224 224 224 224 224 224 224 224 224 224
+             224 224 224 224 224 224 224 224 224 224 224 224]
+        nil nil 'center)
+      (define-fringe-bitmap 'git-gutter-fr:deleted
+        [0 0 0 0 0 0 0 0 0 0 0 0 0 128 192 224 240 248]
+        nil nil 'center))))
+#+END_SRC
 ** Expand Regions
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package expand-region
