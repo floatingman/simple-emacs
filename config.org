@@ -206,9 +206,6 @@ Just copying this verbose now
  auto-save-list-file-prefix "~/.emacs.d/.cache/auto-save-list/saves-"
 
 
-   ;;;   Ediff
- ediff-window-setup-function 'ediff-setup-windows-plain ;; Single frame ediff session
-
    ;;;   Ido mode
  ido-enable-flex-matching t
  ido-save-directory-list-file "~/.emacs.d/.cache/ido.last"
@@ -2060,8 +2057,57 @@ Filter dired results
   :ensure t
   :bind (:map dired-mode-map ("/" . dired-narrow)))
 #+END_SRC
+** Ediff
+Setup your ediff for diffing efficiently
 
+Open ediff window in the same frame
+#+BEGIN_SRC emacs-lisp :tangle yes
+(setq ediff-window-setup-function 'ediff-setup-windows-plain)
+#+END_SRC
 
+Split window horizontally depending on window size
+#+BEGIN_SRC emacs-lisp :tangle yes
+(setq ediff-split-window-function (if (> (frame-width) 150)
+                                      'split-window-horizontally
+                                    'split-window-vertically))
+#+END_SRC
+
+Restore your windows after ediff session
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defvar my-ediff-bwin-config nil "Window configuration before ediff.")
+(defcustom my-ediff-bwin-reg ?b
+  "*Register to be set up to hold `my-ediff-bwin-config'
+configuration.")
+
+(defvar my-ediff-awin-config nil "Window configuration after ediff.")
+(defcustom my-ediff-awin-reg ?e
+      "*Register to be used to hold `my-ediff-awin-config' window
+    configuration.")
+
+    (defun my-ediff-bsh ()
+      "Function to be called before any buffers or window setup for
+    ediff."
+      (setq my-ediff-bwin-config (current-window-configuration))
+      (when (characterp my-ediff-bwin-reg)
+    	(set-register my-ediff-bwin-reg
+    		      (list my-ediff-bwin-config (point-marker)))))
+
+    (defun my-ediff-ash ()
+      "Function to be called after buffers and window setup for ediff."
+      (setq my-ediff-awin-config (current-window-configuration))
+      (when (characterp my-ediff-awin-reg)
+    	(set-register my-ediff-awin-reg
+    		      (list my-ediff-awin-config (point-marker)))))
+
+    (defun my-ediff-qh ()
+      "Function to be called when ediff quits."
+      (when my-ediff-bwin-config
+    	(set-window-configuration my-ediff-bwin-config)))
+
+    (add-hook 'ediff-before-setup-hook 'my-ediff-bsh)
+    (add-hook 'ediff-after-setup-windows-hook 'my-ediff-ash 'append)
+    (add-hook 'ediff-quit-hook 'my-ediff-qh)
+#+END_SRC
 ** Skeleton Code
 #+BEGIN_SRC emacs-lisp :tangle yes
 (require 'skeleton)
