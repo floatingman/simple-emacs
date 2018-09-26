@@ -1490,7 +1490,20 @@ Version 2017-11-01"
            (pyenv-mode-set (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
 (add-hook 'find-file-hook 'ssbb-pyenv-hook)
 #+END_SRC
+** Smarty pants tabs
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package smart-tabs-mode
+    :ensure t
+    :config
+    (smart-tabs-insinuate 'c 'javascript 'python)
+    (smart-tabs-advice python-indent-line-1 python-indent)
+    (add-hook 'python-mode-hook
+              (lambda ()
+                (setq indent-tabs-mode t)
+                (setq tab-width (default-value 'tab-width)))))
+#+END_SRC
 ** C and C++
+**
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package ccls
   :ensure t
