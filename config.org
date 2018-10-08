@@ -5270,6 +5270,11 @@ File management at it's best
 (add-to-list 'load-path "~/.emacs.d/site-lisp/sunrise-commander/")
 (require 'sunrise-commander)
 #+END_SRC
+** Editorconfig
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package editorconfig
+  :ensure t)
+#+END_SRC
 ** Hooks
 Run some things when everything is loaded.
 #+BEGIN_SRC emacs-lisp :tangle yes
