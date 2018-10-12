@@ -149,9 +149,6 @@ Just copying this verbose now
    ;;;   Use spaces and not tabs for indentation
  indent-tabs-mode nil
 
-   ;;;   Don't highlight trailing whitespaces by default
- show-trailing-whitespace nil
-
    ;;;   Org
  org-src-fontify-natively t ;; Fontify source blocks
  org-src-tab-acts-natively t ;; indention in src blocks should work
@@ -287,7 +284,7 @@ Just copying this verbose now
 
 (set-frame-font "Iosevka")
 
-(menu-bar-mode 0)
+(menu-bar-mode 1)
 (tool-bar-mode 0)
 (menu-bar-no-scroll-bar)
 
@@ -305,23 +302,6 @@ Just copying this verbose now
   ;;;   Enable line numbers in fundamental mode
 (add-hook 'text-mode-hook 'display-line-numbers-mode)
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
-
-(defun my/set-show-whitespace-mode ()
-  "Show white space in current buffer"
-  (setq show-trailing-whitespace t))
-;; Show whitespaces only in buffers pointing to specific files
-(add-hook 'find-file-hook 'my/set-show-whitespace-mode)
-;; Remove the trailing whitespaces on save
-(add-hook 'before-save-hook 'delete-trailing-whitespace)
-
-(with-eval-after-load 'abbrev
-  (progn
-    (when (file-exists-p abbrev-file-name)
-      (quietly-read-abbrev-file))
-    (when (file-exists-p "./my-abbrev.el")
-      (load "./my-abbrev.el"))))
-
-  ;;;   Highlighting current line is improtant when lines are long in tables
 
 (when (fboundp 'xwidget-webkit-browse-url)
   (use-package xwidget
@@ -351,73 +331,6 @@ Just copying this verbose now
          (browse-url-interactive-arg "xwidget-webkit URL: ")))
       (xwidget-webkit-browse-url url t)))
   )
-
-
-(defcustom minibuffer-message-list
-  '("Let the hacking begin!"
-    "Welcome to Emacs!"
-    "Have a good day!"
-    "Good luck configuring Emacs!"
-    "Better concentrate on your work"
-    "Don’t even think about other editors"
-    "Are you sleeping?"
-    "Sorry, if I broke your concentration!"
-    "Please update me"
-    "The minibuffer sucks!"
-    "Remember the day when we first met?"
-    "Did you stop typing?"
-    "You should commit your changes before you mess up"
-    "I am on a loop"
-    "You should keep a log of your tasks"
-    "Please don’t quit! Please!"
-    "Did you call your Mom?"
-    "I am older than you"
-    "Don’t get into the XY problem"
-    "Get some rest")
-  "List of messages that are displayed in the minibuffer after a specific period
-  of time controlled by `minibuffer-message-display-interval'."
-  :type '(repeat string))
-
-
-(defvar minibuffer-message-display-interval 5
-  "Time in minutes after which a random message from `minibuffer-message-list'
-  is shown in minibuffer.")
-
-
-(defvar minibuffer-message-echo-timer nil
-  "Object that stores the timer for messages that are displayed in the
-  minibuffer using `display-startup-echo-area-message'.")
-
-
-(defun restart-minibuffer-message-display-timer (func)
-  "Start the minibuffer timer with `FUNC' running per
-  `minibuffer-message-display-interval'."
-  (when minibuffer-message-echo-timer (cancel-timer minibuffer-message-echo-timer))
-  (setq minibuffer-message-echo-timer
-        (run-with-timer 0 (* minibuffer-message-display-interval 60) func)))
-
-
-(defun display-startup-echo-area-message ()
-  "Show a message in minibuffer."
-  (interactive)
-  (message
-   (let* ((length (length minibuffer-message-list))
-          (random-number (abs (% (random) length))))
-     (car (nthcdr random-number minibuffer-message-list)))))
-
-
-(restart-minibuffer-message-display-timer 'display-startup-echo-area-message)
-
-
-(defun toggle-minibuffer-message-timer ()
-  "Toggle minibuffer message showing per
-  `minibuffer-message-display-interval'."
-  (interactive)
-  (if (null minibuffer-message-echo-timer)
-      (restart-minibuffer-message-display-timer 'display-startup-echo-area-message)
-    (cancel-timer minibuffer-message-echo-timer)
-    (setq minibuffer-message-echo-timer)))
-
 
 (setq recentf-max-saved-items 512
       history-length t
@@ -758,7 +671,7 @@ When using Homebrew, install it using \"brew install trash\"."
 #+END_SRC
 ** God Mode
 An alternative to GAAAWWWWWWWWWWWD mode
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
 (use-package god-mode
   :ensure t
   :config
@@ -813,12 +726,74 @@ An alternative to GAAAWWWWWWWWWWWD mode
   :bind ("<f9> k" . keycast-mode))
 #+END_SRC
 
+** Highlight of my life
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package highlight-symbol
+  :ensure t
+  :bind (("M-n" . highlight-symbol-next)
+         ("M-p" . highlight-symbol-prev))
+  :config (highlight-symbol-nav-mode))
+
+;; volatile-highlights: highlight specific operations like undo, yank
+;; https://github.com/k-talo/volatile-highlights.el
+(use-package volatile-highlights :ensure t
+  :config (volatile-highlights-mode t))
+
+;; enable hl-line-mode globally
+(global-hl-line-mode)
+
+;; rainbow-mode: colorize color names in buffers
+;; https://github.com/emacsmirror/rainbow-mode/blob/master/rainbow-mode.el
+(use-package rainbow-mode :ensure t
+  :hook ((helpful-mode . rainbow-mode)))
+
+;; beacon: blink the cursor whenever scrolling or switching between windows
+;; https://github.com/Malabarba/beacon
+(use-package beacon :ensure t
+  :config
+  (setq beacon-size 15)
+  (beacon-mode)
+
+  ;; don't blink in shell-mode
+  (add-to-list 'beacon-dont-blink-major-modes #'comint-mode t)
+  (add-to-list 'beacon-dont-blink-major-modes #'term-mode t)
+  (add-to-list 'beacon-dont-blink-major-modes #'sql-interactive-mode t))
+
+;; highlight-numbers: fontify numbers
+;; https://github.com/Fanael/highlight-numbers
+(use-package highlight-numbers :ensure t
+  :hook ((prog-mode . highlight-numbers-mode)))
+
+;; highlight-indent-guides: best indent guides solution for emacs
+;; https://github.com/DarthFennec/highlight-indent-guides
+(use-package highlight-indent-guides :ensure t
+  :hook ((prog-mode . highlight-indent-guides-mode))
+  :config
+  (setq highlight-indent-guides-method 'character)
+  (setq highlight-indent-guides-character ?\ǀ)
+  (setq highlight-indent-guides-responsive 'top)
+
+  ;; https://github.com/DarthFennec/highlight-indent-guides/issues/40
+  (defun jay/cleanup-hig-strings (x)
+    (remove-text-properties 0 (length x) '(highlight-indent-guides-prop nil display) x))
+  (advice-add 'ivy-cleanup-string :after #'jay/cleanup-hig-strings))
+
+;; hl-todo: Highlight TODO keywords
+;; https://github.com/tarsius/hl-todo/tree/master
+(use-package hl-todo :ensure t
+  :config (global-hl-todo-mode))
+
+;; enable some extra syntax highlighting for dash
+(with-eval-after-load 'dash
+  (dash-enable-font-lock))
+#+END_SRC
+
 ** Pairs work best together
 Electric pairs It's Electric
 #+BEGIN_SRC emacs-lisp :tangle yes
 (electric-pair-mode 1)
 #+END_SRC
-,#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (defun xah-insert-bracket-pair (@left-bracket @right-bracket &optional @wrap-method)
   "Insert brackets around selection, word, at point, and maybe move cursor in between.
 
@@ -1302,6 +1277,153 @@ Version 2016-11-22"
      (t (backward-up-list 1 'ESCAPE-STRINGS 'NO-SYNTAX-CROSSING)))))
 
 (global-set-key (kbd "M-n") 'xah-goto-matching-bracket)
+#+END_SRC
+** Smartparens
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package smartparens :ensure t
+:config
+(setq sp-ignore-modes-list (quote (minibuffer-inactive-mode
+Info-mode
+term-mode
+org-mode
+org-journal-mode
+markdown-mode
+ivy-occur-mode)))
+
+;; macro to wrap the current sexp at point
+(defmacro def-pairs (pairs)
+`(progn
+,@(cl-loop for (key . val) in pairs
+collect
+`(defun ,(read (concat
+"wrap-with-"
+(prin1-to-string key)
+"s"))
+(&optional arg)
+(interactive "p")
+(sp-wrap-with-pair ,val)))))
+(def-pairs ((paren . "(")
+(bracket . "[")
+(brace . "{")
+(single-quote . "'")
+(double-quote . "\"")
+(back-quote . "`")))
+
+(bind-keys
+:map smartparens-mode-map
+("C-M-f" . sp-forward-sexp)
+("C-M-b" . sp-backward-sexp)
+("C-M-d" . sp-down-sexp)
+("C-M-a" . sp-backward-down-sexp)
+("C-S-d" . sp-beginning-of-sexp)
+("C-S-a" . sp-end-of-sexp)
+("C-M-e" . sp-up-sexp)
+("C-M-u" . sp-backward-up-sexp)
+("M-P" . sp-previous-sexp)
+("M-N" . sp-next-sexp)
+("C-M-k" . sp-kill-sexp)
+("C-M-w" . sp-copy-sexp)
+("M-<delete>" . sp-unwrap-sexp)
+("M-<backspace>" . sp-backward-unwrap-sexp)
+("C-<right>" . sp-forward-slurp-sexp)
+("C-<left>" . sp-forward-barf-sexp)
+("C-M-<left>" . sp-backward-slurp-sexp)
+("C-M-<right>" . sp-backward-barf-sexp)
+("M-D" . sp-splice-sexp)
+("C-M-<delete>" . sp-splice-sexp-killing-forward)
+("C-M-<backspace>" . sp-splice-sexp-killing-backward)
+("C-S-<backspace>" . sp-splice-sexp-killing-around)
+("C-]" . sp-select-next-thing-exchange)
+("C-M-]" . sp-select-next-thing)
+("C-M-SPC" . sp-mark-sexp)
+("M-F" . sp-forward-symbol)
+("M-B" . sp-backward-symbol)
+
+("C-c R" . sp-rewrap-sexp)
+("M-[" . sp-backward-unwrap-sexp)
+("M-]" . sp-unwrap-sexp)
+
+("C-c s j" . sp-join-sexp)
+("C-c s s" . sp-split-sexp)
+
+("C-c )" . wrap-with-parens)
+("C-c ]" . wrap-with-brackets)
+("C-c }" . wrap-with-braces)
+("C-c '" . wrap-with-single-quotes)
+("C-c \"" . wrap-with-double-quotes)
+("C-c `" . wrap-with-back-quotes))
+
+;; enable smartparens globally
+(smartparens-global-mode)
+(smartparens-global-strict-mode) ; only allows you to insert or delete
+; brackets in pairs
+(show-smartparens-global-mode +1)
+
+(require 'smartparens-config)
+
+;; indent with braces for C like languages
+(sp-with-modes '(rust-mode
+js2-mode
+css-mode
+web-mode
+typescript-mode
+c-mode
+c++-mode
+sh-mode
+go-mode
+shell-mode)
+(sp-local-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
+(sp-local-pair "/*" "*/" :post-handlers '((" | " "SPC")
+("* ||\n[i]" "RET"))))
+
+(bind-key "C-c h s"
+(defhydra smartparens-hydra (:hint nil)
+"
+_d_: down           _a_: back-down        _f_: -> sexp    _k_: hyb-kill      _c_-_a_: begin
+_e_: up             _u_: back-up          _b_: <- sexp    _K_: kill          _c_-_e_: end
+_[_: back-unwrap    _]_: unwrap           _r_: rewrap     _m_: mark            _j_: join
+_p_: prev           _n_: next             _c_: copy       _s_: mark-thing      _|_: split
+_t_: transpose      _T_: hyb-transpose    _q_: quit
+"
+
+("d" sp-down-sexp)
+("e" sp-up-sexp)
+("u" sp-backward-up-sexp)
+("a" sp-backward-down-sexp)
+("f" sp-forward-sexp)
+("b" sp-backward-sexp)
+("k" sp-kill-hybrid-sexp)
+("t" sp-transpose-sexp)
+("T" sp-transpose-hybrid-sexp)
+("K" sp-kill-sexp)
+("[" sp-backward-unwrap-sexp)
+("]" sp-unwrap-sexp)
+("r" sp-rewrap-sexp)
+("p" sp-previous-sexp)
+("n" sp-next-sexp)
+("j" sp-join-sexp)
+("|" sp-split-sexp)
+("c" sp-copy-sexp)
+("s" sp-select-next-thing :color blue)
+("m" sp-mark-sexp :color blue)
+("q" nil :color blue))
+smartparens-mode-map)
+
+(setq sp-show-pair-from-inside t)
+;; show matching paren instantly
+(setq sp-show-pair-delay 0.1)
+
+;; no more pair mismatch messages
+(setq sp-message-width nil)
+
+(defun sp-strict-kill-line-or-region (&optional arg)
+"Kill active region or current line."
+(interactive "p")
+(if (use-region-p)
+(sp-kill-region (region-beginning) (region-end))
+(sp-kill-whole-line)))
+
+(bind-key* "C-w" #'sp-strict-kill-line-or-region smartparens-mode-map))
 #+END_SRC
 ** Drop down and give me 20, Magit!
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -1858,12 +1980,10 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
 *** Web mode
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package web-mode
-  :ensure t
   :mode (("\\.html$" . web-mode)
          ("\\.djhtml$" . web-mode)
          ("\\.tsx$" . web-mode)
          ("\\.mustache\\'" . web-mode)
-         ("\\.phtml\\'" . web-mode)
          ("\\.phtml\\'" . web-mode)
          ("\\.as[cp]x\\'" . web-mode)
          ("\\.erb\\'" . web-mode)
@@ -1872,14 +1992,16 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
          (web-mode . (lambda ()
                        (highlight-indent-guides-mode -1))))
   :config
+
   (setq web-mode-markup-indent-offset 2)
   (setq web-mode-css-indent-offset 2)
   (setq web-mode-code-indent-offset 2)
 
   (setq web-mode-enable-html-entities-fontification t
         web-mode-auto-close-style 2)
+
   (with-eval-after-load "smartparens"
-    (defun +web-is-auto-clost-syle-3 (_id action _context)
+    (defun +web-is-auto-close-style-3 (_id action _context)
       (and (eq action 'insert)
            (eq web-mode-auto-close-style 3)))
     (sp-local-pair 'web-mode "<" nil :unless '(:add +web-is-auto-close-style-3))
@@ -1898,7 +2020,7 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
               (cl-loop for pair in (cdr alist)
                        unless (string-match-p "^[a-z-]" (cdr pair))
                        collect (cons (car pair)
-                                     (string-trim-right (cdr pair) "\\(?:>\\|]\\|}\\}+")))))
+                                     (string-trim-right (cdr pair) "\\(?:>\\|]\\|}\\)+")))))
     (setf (alist-get nil web-mode-engines-auto-pairs) nil))
 
   ;; highlight matching tag
@@ -1956,11 +2078,13 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
 ;; impatient mode: Live refresh of web pages
 ;; https://github.com/skeeto/impatient-mode
 (use-package impatient-mode
+  :ensure t
   :commands (impatient-mode))
 
 ;; emmet-mode: dynamic snippets for HTML
 ;; https://github.com/smihica/emmet-mode
 (use-package emmet-mode
+  :ensure t
   :bind
   ((:map emmet-mode-keymap
          ("C-c [" . emmet-prev-edit-point)
