@@ -7,63 +7,109 @@
 #+END_SRC
 *** Setup package repositories
 #+BEGIN_SRC emacs-lisp :tangle yes
-(require 'cl)
-(require 'package)
+          (require 'cl)
+          (require 'package)
 
-(setq package-enable-at-startup nil)
+          (setq package-enable-at-startup nil)
 
-;; orgmode.org unfortunately does not support https
-(add-to-list 'package-archives
-             '("org" . "http://orgmode.org/elpa/") t)
-(add-to-list 'package-archives
-             '("gnu" . "https://elpa.gnu.org/packages/") t)
-(add-to-list 'package-archives
-             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
-(add-to-list 'package-archives
-             '("melpa" . "https://melpa.org/packages/") t)
+          ;; orgmode.org unfortunately does not support https
+          (add-to-list 'package-archives
+                       '("org" . "http://orgmode.org/elpa/") t)
+          (add-to-list 'package-archives
+                       '("gnu" . "https://elpa.gnu.org/packages/") t)
+          (add-to-list 'package-archives
+                       '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+          (add-to-list 'package-archives
+                       '("melpa" . "https://melpa.org/packages/") t)
 
-(unless package--initialized (package-initialize t))
+          (unless package--initialized (package-initialize t))
 
-(when (< emacs-major-version 27)
-  (package-initialize))
+          (when (< emacs-major-version 27)
+            (package-initialize))
 
-;; Install use-package
-(if (package-installed-p 'use-package)
-    (require 'use-package)
-    (progn
-      (package-refresh-contents)
-      (package-install 'use-package)))
+          (setq use-package-enable-imenu-support t)
 
+          ;; Install use-package
+          (unless (package-installed-p 'use-package)
+            (package-refresh-contents)
+            (package-install 'use-package)) ;
+        (eval-when-compile (require 'use-package))
+      (require 'bind-key)
 
-(defvar my/did-refresh-packages nil
-  "Flag for wheater packages have been refreshed yet")
+      (use-package system-packages
+        :ensure t)
 
-;; Utility to install a list of packages
-(defun install-pkgs (list)
-  (dolist (pkg list)
-    (progn
-      (if (not (package-installed-p pkg))
-          (progn
-            (if (not my/did-refresh-packages)
-                (progn (package-refresh-contents)
-                       (setq my/did-refresh-packages t)))
-            (package-install pkg))))))
+      ;; https://github.com/emacsorphanage/key-chord/tree/master
+      (use-package key-chord
+        :hook (emacs-startup . (lambda ()
+    (key-chord-mode 1))))
+    (use-package use-package-chords
+    :ensure t)
+    (use-package use-package-ensure-system-package
+      :ensure t)
 
-;;Pin some of the packages that go wonky if I use the bleeding edge.
+    ;; http://emacs.stackexchange.com/a/26513/115
+    (defun modi/package-dependency-check-ignore (orig-ret)
+      "Remove the `black listed packages' from ORIG-RET.
+    Packages listed in the let-bound `pkg-black-list' will not be auto-installed
+    even if they are found as dependencies.
+    It is known that this advice is not effective when installed packages
+    asynchronously using `paradox'. Below is effective on synchronous
+    package installations."
+      (let ((pkg-black-list '(org))
+            new-ret
+            pkg-name)
+        ;; (message "before %S" orig-ret)
+        (dolist (pkg-struct orig-ret)
+          (setq pkg-name (package-desc-name pkg-struct))
+          (if (member pkg-name pkg-black-list)
+              (message (concat "Package `%s' will not be installed. "
+                               "See `modi/package-dependency-check-ignore'.")
+                       pkg-name)
+            ;; (message "Package to be installed: %s" pkg-name)
+            (push pkg-struct new-ret)))
+        ;; Tue Apr 11 17:48:16 EDT 2017 - kmodi
+        ;; It's *very* critical that the order of packages stays the same in NEW-RET
+        ;; as in ORIG-RET. The `push' command flips the order, so use `reverse'
+        ;; to flip the order back to the original.
+        ;;   Without this step, you will get errors like below when installing
+        ;; packages with dependencies:
+        ;;   Debugger entered--Lisp error: (error "Unable to activate package ‘nim-mode’.
+        ;;   Required package ‘flycheck-28’ is unavailable")
+        (setq new-ret (reverse new-ret))
+        ;; (message "after  %S" new-ret)
+        new-ret))
+    (advice-add 'package-compute-transaction :filter-return #'modi/package-dependency-check-ignore)
 
-(when (boundp 'package-pinned-packages)
-  (setq package-pinned-packages
-        '((org-plus-contrib                  . "org")
-          (cider                             . "melpa-stable")
-          (ac-cider                          . "melpa-stable")
-          (clojure-mode                      . "melpa-stable")
-          (clojure-mode-extra-font-locking   . "melpa-stable")
-          (company-cider                     . "melpa-stable"))))
+          (defvar my/did-refresh-packages nil
+            "Flag for whether packages have been refreshed yet")
 
-;; Load use-package, used for loading packages everywhere else
-(require 'use-package nil t)
-;; Set to t to debug package loading or nil to disable
-(setq use-package-verbose nil)
+          ;; Utility to install a list of packages
+          (defun install-pkgs (list)
+            (dolist (pkg list)
+              (progn
+                (if (not (package-installed-p pkg))
+                    (progn
+                      (if (not my/did-refresh-packages)
+                          (progn (package-refresh-contents)
+                                 (setq my/did-refresh-packages t)))
+                      (package-install pkg))))))
+
+          ;;Pin some of the packages that go wonky if I use the bleeding edge.
+
+          (when (boundp 'package-pinned-packages)
+            (setq package-pinned-packages
+                  '((org-plus-contrib                  . "org")
+                    (cider                             . "melpa-stable")
+                    (ac-cider                          . "melpa-stable")
+                    (clojure-mode                      . "melpa-stable")
+                    (clojure-mode-extra-font-locking   . "melpa-stable")
+                    (company-cider                     . "melpa-stable"))))
+
+          ;; Load use-package, used for loading packages everywhere else
+          (require 'use-package nil t)
+          ;; Set to t to debug package loading or nil to disable
+          (setq use-package-verbose nil)
 #+END_SRC
 *** Display loading information
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -1438,22 +1484,6 @@ Version 2017-11-01"
     ))
 (global-set-key (kbd "<f7>") 'xah-new-empty-buffer)
 #+END_SRC
-** Language Server Protocol
-#+BEGIN_SRC emacs-lisp :tangle yes
-(use-package lsp-mode
-  :ensure t
-  :init
-  (progn
-    (require 'lsp-imenu)
-    (add-hook 'lsp-after-open-hook 'lsp-enable-imenu)
-    (use-package company-lsp :ensure t)
-    (use-package lsp-ui
-      :ensure t
-      :bind
-      (:map lsp-ui-mode-map
-            ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
-            ([remap xref-find-references] . lsp-ui-peek-find-references)))))
-#+END_SRC
 ** Hydra
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package hydra :ensure t)
@@ -1467,7 +1497,481 @@ Version 2017-11-01"
 (global-set-key (kbd "M-t")    'my/hydra/body)
 
 #+END_SRC
-** Python
+
+** Flycheck vs Flyspell
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package flyspell
+  :ensure nil
+  :hook
+  ((org-mode . flyspell-mode)
+   (markdown-mode . flyspell-mode)
+   (prog-mode . flyspell-prog-mode))
+  :config
+  ;; Save a new word to personal dictionary without asking
+  (setq ispell-silently-savep t)
+
+  ;; speed up flyspell
+  (setq flyspell-issue-message-flag nil)
+
+  ;; use hunspell as the default dictionary
+  (when (executable-find "hunspell")
+    (setq ispell-program-name (executable-find "hunspell"))
+    (setq ispell-really-hunspell t)
+    (setenv "DICTIONARY" "en_US")
+    (setq ispell-dictionary "en_US")))
+
+;; flycheck: on the fly syntax checking
+;; http://www.flycheck.org/en/latest/
+(use-package flycheck
+  :bind ("C-c h f" . hydra-flycheck/body)
+  :config
+  (defhydra hydra-flycheck (:color blue
+                                   :hint nil)
+    "
+  ^
+  ^Flycheck^          ^Errors^            ^Checker^
+  ^────────^──────────^──────^────────────^───────^─────
+  _q_ quit            _<_ previous        _?_ describe
+  _M_ manual          _>_ next            _d_ disable
+  _v_ verify setup    _f_ check           _m_ mode
+  ^^                  _l_ list            _s_ select
+  ^^                  ^^                  ^^
+  "
+    ("q" nil)
+    ("<" flycheck-previous-error :color pink)
+    (">" flycheck-next-error :color pink)
+    ("?" flycheck-describe-checker)
+    ("M" flycheck-manual)
+    ("d" flycheck-disable-checker)
+    ("f" flycheck-buffer)
+    ("l" flycheck-list-errors)
+    ("m" flycheck-mode)
+    ("s" flycheck-select-checker)
+    ("v" flycheck-verify-setup)))
+
+;; flycheck-posframe: Show flycheck errors via posframe.el
+;; https://github.com/alexmurray/flycheck-posframe
+(use-package flycheck-posframe :defer t :ensure t
+  :after flycheck
+  :hook (flycheck-mode . flycheck-posframe-mode)
+  :config (flycheck-posframe-configure-pretty-defaults))
+#+END_SRC
+
+** Language Server Protocol
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package lsp-mode
+  :ensure t)
+
+(use-package company-lsp
+  :ensure t
+  :config
+  (push 'company-lsp company-backends))
+
+(use-package lsp-ui
+  :ensure t
+  :config
+  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
+  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references)
+  (setq lsp-ui-sideline-enable nil
+        lsp-ui-flycheck-enable t
+        lsp-ui-imenu-enable t
+        lsp-ui-sideline-ignore-duplicate t))
+(use-package lsp-html
+  :ensure t
+  :ensure-system-package
+  (html-languageserver . "npm i -g vscode-html-languageserver-bin"))
+#+END_SRC
+
+** Languages
+Here is where I keep language specific config
+*** Typescript
+#+BEGIN_SRC emacs-lisp :tangle yes
+;; typescript: major mode for editing typescript files
+;; https://github.com/ananthakumaran/typescript.el
+(use-package typescript-mode
+:ensure t
+  :hook ((typescript-mode . (lambda ()
+                              (my-tide-setup-hook)
+                              (add-node-modules-path)
+                              (company-mode))))
+  :ensure-system-package (tslint . "npm i -g tslint")
+  :bind ((:map typescript-mode-map
+               ("C-c C-t" . tide-documentation-at-point)
+               ("C-c T p" . typescript/open-region-in-playground)))
+  :config
+  (defun typescript/open-region-in-playground (start end)
+    "Open selected region in http://www.typescriptlang.org/Playground
+                 If nothing is selected - open the whole current buffer."
+    (interactive (if (use-region-p)
+                     (list (region-beginning) (region-end))
+                   (list (point-min) (point-max))))
+    (browse-url (concat "http://www.typescriptlang.org/Playground#src="
+                        (url-hexify-string (buffer-substring-no-properties start end))))))
+
+;; tide: TypeScript Interactive Development Environment for Emacs
+;; https://github.com/ananthakumaran/tide
+(use-package tide
+:ensure t
+  :after typescript-mode
+  :config
+  (defun my-tide-setup-hook ()
+    ;; configure tide
+    (tide-setup)
+    ;; highlight identifiers
+    (tide-hl-identifier-mode +1)
+    ;;enable eldoc-mode
+    (eldoc-mode)
+    ;; enable flycheck
+    (flycheck-mode)
+
+    ;; format typescript files using prettier
+    (prettier-js-mode)
+
+    ;; company-backends setup
+    (set (make-local-variable 'company-backends)
+         '((company-tide company-files :with company-yasnippet)
+           (company-dabbrev-code company-dabbrev))))
+
+  ;; use 2 space indentation
+  (setq typescript-indent-level 2)
+
+  ;; add tslint checker for flycheck
+  (flycheck-add-next-checker 'typescript-tide
+                             'typescript-tslint)
+
+  (setq tide-completion-detailed t)
+
+  (add-hook 'tide-mode-hook
+            (lambda ()
+              (add-hook 'kill-buffer-hook #'+javascript|cleanup-tide-processes nil t))))
+
+;;;###autoload
+(defun +javascript|cleanup-tide-processes ()
+  "Clean up dangling tsserver processes if there are no more buffers with
+`tide-mode' active that belong to that server's project."
+  (when tide-mode
+    (unless (cl-loop with project-name = (tide-project-name)
+                     for buf in (delq (current-buffer) (buffer-list))
+                     if (and (buffer-local-value 'tide-mode buf)
+                             (with-current-buffer buf
+                               (string= (tide-project-name) project-name)))
+                     return buf)
+      (kill-process (tide-current-server)))))
+#+END_SRC
+*** Javascript
+Javascript is hip
+Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunandan]]
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package js2-mode
+  :ensure t
+    :mode (("\\.js$" . js2-mode))
+    :hook ((js2-mode . (lambda ()
+                         (flycheck-mode)
+                         (my-tide-setup-hook)
+                         (company-mode))))
+    :ensure-system-package ((prettier . "npm i -g prettier")
+                            (eslint . "npm i -g eslint")
+                            (eslint_d . "npm i -g eslint_d"))
+    :config
+    ;; two spaces is what everyone should use
+    (setq js-indent-level 2
+          js2-basic-offset 2
+          js-chain-indent t)
+
+    ;; use eslint_d instead of eslint for faster linting
+    (setq flycheck-javascript-eslint-executable "eslint_d")
+
+    ;; Try to hightlight most ECMA built-ins
+    (setq js2-highlight-level 3)
+
+      ;; turn off all warnings in js2-mode
+    (setq js2-mode-show-parse-errors t)
+    (setq js2-mode-show-strict-warnings nil)
+    (setq js2-strict-missing-semi-warning nil)
+
+    (defun my-tide-setup-hook ()
+      ;; configure tide
+      (tide-setup)
+      ;; highlight identifiers
+      (tide-hl-identifier-mode +1)
+      ;;enable eldoc-mode
+      (eldoc-mode)
+      ;; enable flycheck
+      (flycheck-mode)
+
+      ;; format typescript files using prettier
+      (prettier-js-mode)
+
+      ;; company-backends setup
+      (set (make-local-variable 'company-backends)
+           '((company-tide company-files :with company-yasnippet)
+             (company-dabbrev-code company-dabbrev)))
+
+      ;; configure javascript-tide checker to run after your default javascript checker
+      (flycheck-add-next-checker 'javascript-eslint 'javascript-tide 'append)))
+
+  ;; js2-refactor: refactoring options for emacs
+  ;; https://github.com/magnars/js2-refactor.el
+  (use-package js2-refactor
+  :ensure t
+    :after js2-mode
+    :bind
+    (:map js2-mode-map
+          ("C-k" . js2r-kill)
+          ("C-c h r" . js2-refactor-hydra/body))
+    :hook ((js2-mode . js2-refactor-mode))
+    :config (js2r-add-keybindings-with-prefix "C-c C-r")
+
+    (defhydra js2-refactor-hydra (:color blue :hint nil)
+      "
+  ^Functions^                    ^Variables^               ^Buffer^                      ^sexp^               ^Debugging^
+  ------------------------------------------------------------------------------------------------------------------------------
+  [_lp_] Localize Parameter      [_ev_] Extract variable   [_wi_] Wrap buffer in IIFE    [_k_]  js2 kill      [_lt_] log this
+  [_ef_] Extract function        [_iv_] Inline variable    [_ig_] Inject global in IIFE  [_ss_] split string  [_dt_] debug this
+  [_ip_] Introduce parameter     [_rv_] Rename variable    [_ee_] Expand node at point   [_sl_] forward slurp
+  [_em_] Extract method          [_vt_] Var to this        [_cc_] Contract node at point [_ba_] forward barf
+  [_ao_] Arguments to object     [_sv_] Split var decl.    [_uw_] unwrap
+  [_tf_] Toggle fun exp and decl [_ag_] Add var to globals
+  [_ta_] Toggle fun expr and =>  [_ti_] Ternary to if
+  [_q_]  quit"
+      ("ee" js2r-expand-node-at-point)
+      ("cc" js2r-contract-node-at-point)
+      ("ef" js2r-extract-function)
+      ("em" js2r-extract-method)
+      ("tf" js2r-toggle-function-expression-and-declaration)
+      ("ta" js2r-toggle-arrow-function-and-expression)
+      ("ip" js2r-introduce-parameter)
+      ("lp" js2r-localize-parameter)
+      ("wi" js2r-wrap-buffer-in-iife)
+      ("ig" js2r-inject-global-in-iife)
+      ("ag" js2r-add-to-globals-annotation)
+      ("ev" js2r-extract-var)
+      ("iv" js2r-inline-var)
+      ("rv" js2r-rename-var)
+      ("vt" js2r-var-to-this)
+      ("ao" js2r-arguments-to-object)
+      ("ti" js2r-ternary-to-if)
+      ("sv" js2r-split-var-declaration)
+      ("ss" js2r-split-string)
+      ("uw" js2r-unwrap)
+      ("lt" js2r-log-this)
+      ("dt" js2r-debug-this)
+      ("sl" js2r-forward-slurp)
+      ("ba" js2r-forward-barf)
+      ("k" js2r-kill)
+      ("q" nil)))
+
+  ;; prettier-emacs: minor-mode to prettify javascript files on save
+  ;; https://github.com/prettier/prettier-emacs
+  (use-package prettier-js
+:ensure t
+    :hook ((js2-mode . prettier-js-mode)
+           (rjsx-mode . prettier-js-mode)))
+
+  ;; json-snatcher: get the path of any JSON element easily
+  ;; https://github.com/Sterlingg/json-snatcher
+  (use-package json-snatcher
+:ensure t
+    :hook ((json-mode . js-mode-bindings))
+    :config
+    (defun js-mode-bindings ()
+      "Sets a hotkey for using the json-snatcher plugin"
+      (when (string-match  "\\.json$" (buffer-name))
+        (local-set-key (kbd "C-c C-g") 'jsons-print-path))))
+
+  ;; indium: javascript awesome development environment
+  ;; https://github.com/NicolasPetton/indium
+  (use-package indium
+:ensure t
+    :after js2-mode
+    :bind (:map js2-mode-map
+                ("C-c C-l" . indium-eval-buffer))
+    :hook (((js2-mode typescript-mode) . indium-interaction-mode)))
+
+  ;; mocha: emacs mode for running mocha tests
+  ;; https://github.com/scottaj/mocha.el
+  (use-package mocha
+:ensure t
+    :after js2-mode
+    :config
+    (require 'typescript-mode)
+    (dolist (m (list js2-mode-map typescript-mode-map))
+      (bind-keys
+       :map m
+       ("C-c m P" . mocha-test-project)
+       ("C-c m f" . mocha-test-file)
+       ("C-c m p" . mocha-test-at-point))))
+
+  ;; mocha-snippets: snippets for mocha test framework
+  ;; https://github.com/cowboyd/mocha-snippets.el
+  (use-package mocha-snippets
+:ensure t)
+
+  ;; Adds the node_modules/.bin directory to the buffer exec_path. E.g. support project local eslint installations.
+  ;; https://github.com/codesuki/add-node-modules-path/tree/master
+  (use-package add-node-modules-path
+:ensure t
+    :hook ((js2-mode . add-node-modules-path)
+           (rjsx-mode . add-node-modules-path)))
+
+  ;; json-mode: Major mode for editing JSON files with emacs
+  ;; https://github.com/joshwnj/json-mode
+  (use-package json-mode
+:ensure t
+    :mode "\\.js\\(?:on\\|[hl]int\\(rc\\)?\\)\\'"
+    :config
+    (add-hook 'json-mode-hook #'prettier-js-mode)
+    (setq json-reformat:indent-width 2)
+    (setq json-reformat:pretty-string? t)
+    (setq js-indent-level 2))
+
+  ;; eslintd-fix: Emacs minor-mode to automatically fix javascript with eslint_d.
+  ;; https://github.com/aaronjensen/eslintd-fix/tree/master
+  (use-package eslintd-fix
+:ensure t)
+
+  ;; rjsx-mode: A JSX major mode for Emacs
+  ;; https://github.com/felipeochoa/rjsx-mode
+  (use-package rjsx-mode
+:ensure t
+    :after js2-mode
+    :mode (("\\.jsx$" . rjsx-mode)
+           ("components/.+\\.js$" . rjsx-mode))
+    :hook (rjsx-mode . (lambda ()
+                            (flycheck-mode)
+                            (my-tide-setup-hook)
+                            (company-mode)
+                            (indium-interaction-mode -1)
+                            (js2-refactor-mode -1)))
+    :init
+    (defun +javascript-jsx-file-p ()
+      "Detect React or preact imports early in the file."
+      (and buffer-file-name
+           (string= (file-name-extension buffer-file-name) "js")
+           (re-search-forward "\\(^\\s-*import +React\\|\\( from \\|require(\\)[\"']p?react\\)"
+                              magic-mode-regexp-match-limit t)
+           (progn (goto-char (match-beginning 1))
+                  (not (sp-point-in-string-or-comment)))))
+    (add-to-list 'magic-mode-alist '(+javascript-jsx-file-p . rjsx-mode))
+    :config (unbind-key "C-c C-l" rjsx-mode-map))
+#+END_SRC
+*** Web mode
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package web-mode
+  :ensure t
+  :mode (("\\.html$" . web-mode)
+         ("\\.djhtml$" . web-mode)
+         ("\\.tsx$" . web-mode)
+         ("\\.mustache\\'" . web-mode)
+         ("\\.phtml\\'" . web-mode)
+         ("\\.phtml\\'" . web-mode)
+         ("\\.as[cp]x\\'" . web-mode)
+         ("\\.erb\\'" . web-mode)
+         ("\\.hbs\\'" . web-mode))
+  :hook ((web-mode . company-mode)
+         (web-mode . (lambda ()
+                       (highlight-indent-guides-mode -1))))
+  :config
+  (setq web-mode-markup-indent-offset 2)
+  (setq web-mode-css-indent-offset 2)
+  (setq web-mode-code-indent-offset 2)
+
+  (setq web-mode-enable-html-entities-fontification t
+        web-mode-auto-close-style 2)
+  (with-eval-after-load "smartparens"
+    (defun +web-is-auto-clost-syle-3 (_id action _context)
+      (and (eq action 'insert)
+           (eq web-mode-auto-close-style 3)))
+    (sp-local-pair 'web-mode "<" nil :unless '(:add +web-is-auto-close-style-3))
+
+    ;; let smartparens handle these
+    (setq web-mode-enable-auto-quoting nil
+          web-mode-enable-auto-pairing t)
+
+    ;; 1. Remove web-mode auto pairs whose end pair starts with a latter
+    ;;    (truncated autopairs like <?p and hp ?>). Smartparens handles these
+    ;;    better.
+    ;; 2. Strips out extra closing pairs to prevent redundant characters
+    ;;    inserted by smartparens.
+    (dolist (alist web-mode-engines-auto-pairs)
+      (setcdr alist
+              (cl-loop for pair in (cdr alist)
+                       unless (string-match-p "^[a-z-]" (cdr pair))
+                       collect (cons (car pair)
+                                     (string-trim-right (cdr pair) "\\(?:>\\|]\\|}\\}+")))))
+    (setf (alist-get nil web-mode-engines-auto-pairs) nil))
+
+  ;; highlight matching tag
+  (setq web-mode-enable-current-element-highlight t)
+
+  (defun my-tide-setup-hook ()
+    ;; configure tide
+    (tide-setup)
+    ;;enable eldoc-mode
+    (eldoc-mode)
+    ;; highlight identifiers
+    (tide-hl-identifier-mode +1)
+    ;; enable flycheck
+    (flycheck-mode)
+
+    ;; company-backends setup
+    (set (make-local-variable 'company-backends)
+         '((company-tide company-files :with company-yasnippet)
+           (company-dabbrev-code company-dabbrev)))
+
+    ;; enable typescript-tslint checker
+    (flycheck-add-mode 'typescript-tslint 'web-mode))
+
+  (defun my-web-mode-hook ()
+    "company hook for `web-mode' for non-html buffers."
+    (set (make-local-variable 'company-backends)
+         '((company-capf company-files :with company-yasnippet)
+           (company-dabbrev-code company-dabbrev))))
+
+  (defun my-lsp-html-mode-hook ()
+    " company hook for `web-mode' for html buffers."
+    (set (make-local-variable 'company-backends)
+         '((company-lsp company-files :with company-yasnippet)
+           (company-dabbrev-code company-dabbrev))))
+
+  (defun lsp-html-setup ()
+    "Function to setup `lsp-html'"
+    (lsp-html-enable)
+    (lsp-ui-mode)
+    (my-lsp-html-mode-hook)
+    (emmet-mode)
+    (setq-local lsp-highlight-symbol-at-point nil)
+    (bind-key "C-c o b" #'browse-url-of-file (current-local-map)))
+
+  (add-hook 'web-mode-hook
+            (lambda ()
+              (pcase (file-name-extension buffer-file-name)
+                ("tsx" (my-tide-setup-hook))
+                ("html" (lsp-html-setup))
+                (_ (my-web-mode-hook)))))
+
+  ;; colorize colors in buffers
+  (setq web-mode-enable-css-colorization t))
+
+;; impatient mode: Live refresh of web pages
+;; https://github.com/skeeto/impatient-mode
+(use-package impatient-mode
+  :commands (impatient-mode))
+
+;; emmet-mode: dynamic snippets for HTML
+;; https://github.com/smihica/emmet-mode
+(use-package emmet-mode
+  :bind
+  ((:map emmet-mode-keymap
+         ("C-c [" . emmet-prev-edit-point)
+         ("C-c ]" . emmet-next-edit-point)))
+  :config
+  (setq emmet-move-cursor-between-quotes t)
+  (setq emmet-indentation 2)
+  (unbind-key "C-M-<left>" emmet-mode-keymap)
+  (unbind-key "C-M-<right>" emmet-mode-keymap))
+#+END_SRC
+*** Python
 #+BEGIN_SRC emacs-lisp :tangle yes
 (setq python-shell-interpreter "ipython"
         python-shell-interpreter-args "--simple-prompt -i")
@@ -1490,20 +1994,7 @@ Version 2017-11-01"
            (pyenv-mode-set (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
 (add-hook 'find-file-hook 'ssbb-pyenv-hook)
 #+END_SRC
-** Smarty pants tabs
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package smart-tabs-mode
-    :ensure t
-    :config
-    (smart-tabs-insinuate 'c 'javascript 'python)
-    (smart-tabs-advice python-indent-line-1 python-indent)
-    (add-hook 'python-mode-hook
-              (lambda ()
-                (setq indent-tabs-mode t)
-                (setq tab-width (default-value 'tab-width)))))
-#+END_SRC
-** C and C++
-**
+*** C and C++
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package ccls
   :ensure t
@@ -1515,11 +2006,72 @@ Version 2017-11-01"
         (lsp-ccls-enable)
       (user-error nil))))
 #+END_SRC
-** Web mode
+*** Yaml mode
 #+BEGIN_SRC emacs-lisp :tangle yes
-(use-package web-mode
+(use-package yaml-mode
+  :ensure t)
+#+END_SRC
+*** Elisp
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package elisp-mode :ensure nil
+  :bind (:map emacs-lisp-mode-map
+              ("C-c C-l" . eval-buffer))
+  :config
+  (defun my-elisp-mode-hook ()
+    "Hook for `emacs-lisp-mode'"
+    (set (make-local-variable 'company-backends)
+         '((company-capf company-files :with company-yasnippet)
+           (company-dabbrev-code company-dabbrev))))
+  (add-hook 'emacs-lisp-mode-hook 'my-elisp-mode-hook)
+  (add-hook 'emacs-lisp-mode-hook 'company-mode)
+
+  (defun byte-compile-current-buffer ()
+    "`byte-compile' current buffer if it's emacs-lisp-mode and compiled file exists."
+    (interactive)
+    (when (and (eq major-mode 'emacs-lisp-mode)
+               (file-exists-p (byte-compile-dest-file buffer-file-name)))
+      (byte-compile-file buffer-file-name)))
+
+  (add-hook 'emacs-lisp-mode-hook
+            (lambda ()
+              (add-hook 'before-save-hook
+                        (lambda ()
+                          (time-stamp)
+                          (xah-clean-whitespace)) nil t)))
+
+  (add-hook 'after-save-hook #'byte-compile-current-buffer))
+
+;; highlight-quoted: highlight lisp quoted and quotes symbols
+;; https://github.com/Fanael/highlight-quoted
+(use-package highlight-quoted
   :ensure t
-  :mode ("\\.vue\\'" "\\.html\\'" "\\.htm\\'"))
+  :hook ((emacs-lisp-mode lisp-mode) . highlight-quoted-mode)
+  :config
+  ;; Highlight the ' character itself in the same colour
+  ;; as the quoted symbol.
+  (set-face-attribute 'highlight-quoted-quote nil
+                      :inherit 'highlight-quoted-symbol))
+
+;; Go to the definition of the symbol at point. Supports global definitions,
+;; local definitions, and even macro-heavy code!
+;; https://github.com/Wilfred/elisp-def
+(use-package elisp-def
+  :ensure t
+  :bind (:map emacs-lisp-mode-map
+              ("M-." . elisp-def)
+              ("M-," . xref-pop-marker-stack)))
+#+END_SRC
+** Smarty pants tabs
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package smart-tabs-mode
+    :ensure t
+    :config
+    (smart-tabs-insinuate 'c 'javascript 'python)
+    (smart-tabs-advice python-indent-line-1 python-indent)
+    (add-hook 'python-mode-hook
+              (lambda ()
+                (setq indent-tabs-mode t)
+                (setq tab-width (default-value 'tab-width)))))
 #+END_SRC
 ** Helm
 There are many helm things. I use it a lot.
@@ -1994,11 +2546,6 @@ bindings I use more frequently:
 #+BEGIN_SRC emacs-lisp :tangle yes
 (install-pkgs '(spacemacs-theme))
 (load-theme 'spacemacs-light)
-#+END_SRC
-** Yaml mode
-#+BEGIN_SRC emacs-lisp :tangle yes
-(use-package yaml-mode
-  :ensure t)
 #+END_SRC
 ** Groovy
 #+BEGIN_SRC emacs-lisp :tangle yes
