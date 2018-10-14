@@ -1571,21 +1571,53 @@ This helps visualize version changes in a file
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package company
   :ensure t
-  :hook
-  (after-init . global-company-mode)
+  :bind
+  (("M-/" . hippie.expand) ;; replace `dabbrev-expand' with `hippie-expand' which does a lot more
+   ("C-<tab>" . company-dabbrev))
+  (:map company-active-map
+        ("M-p" . nil)
+        ("M-n" . nil)
+        ("C-m" . nil)
+        ("C-h" . nil)
+        ("C-n" . company-select-next)
+        ("C-p" . company-select-previous)
+        ("<tab>" . company-complete-common)
+        ("C-t" . company-show-doc-buffer))
   :config
-  (setq company-idle-delay 0.09
-        company-minimum-prefix-length 5
-        company-selection-wrap-around t
-        company-show-numbers t
-        company-require-match 'never
-        company-dabbrev-downcase nil
-        company-dabbrev-ignore-case nil
-        company-backends '(company-lsp company-nxml company-cmake
-                                       company-css company-capf
-                                       (company-dabbrev-code company-keywords)
-                                       company-files company-dabbrev)
-        company-jedi-python-bin "python"))
+  (setq company-tooltip-flip-when-above t)
+  (setq company-minimum-prefix-length 3)
+  (setq company-idle-delay 0.2)
+  (setq company-selection-wrap-around t)
+  (setq company-show-numbers t)
+  (setq company-require-match 'never)
+  (setq company-tooltip-align-annotations t)
+
+  ;; don't downcase results from company-dabbrev
+  (setq company-dabbrev-downcase nil)
+  ;; use only buffers with same major-mode for company-dabbrev
+  (setq company-dabbrev-other-buffers t)
+
+  ;; Suspend page-break-lines-mode while company menu is active
+  ;; (see https://github.com/company-mode/company-mode/issues/416)
+  (defvar sanityinc/page-break-lines-on-p nil)
+  (make-variable-buffer-local 'sanityinc/page-break-lines-on-p)
+
+  (defun sanityinc/page-break-lines-disable (&rest ignore)
+    (when (setq sanityinc/page-break-lines-on-p (bound-and-true-p page-break-lines-mode))
+      (page-break-lines-mode -1)))
+
+  (defun sanityinc/page-break-lines-maybe-reenable (&rest ignore)
+    (when sanityinc/page-break-lines-on-p
+      (page-break-lines-mode 1)))
+
+  (add-hook 'company-completion-started-hook 'sanityinc/page-break-lines-disable)
+  (add-hook 'company-completion-finished-hook 'sanityinc/page-break-lines-maybe-reenable)
+  (add-hook 'company-completion-cancelled-hook 'sanityinc/page-break-lines-maybe-reenable))
+
+(use-package company-prescient
+  :ensure t
+  :hook (company-mode . company-prescient-mode)
+  :config (prescient-persist-mode +1))
 #+END_SRC
 ** Buffers
 *** Create a new empty buffer with the press of a key!
@@ -5945,6 +5977,12 @@ File management at it's best
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package editorconfig
   :ensure t)
+#+END_SRC
+** Server
+#+BEGIN_SRC emacs-lisp :tangle yes
+;; start emacs server only if it has not started already
+(require 'server)
+(unless (server-running-p) (server-start))
 #+END_SRC
 ** Hooks
 Run some things when everything is loaded.
