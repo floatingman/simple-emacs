@@ -1,10 +1,12 @@
 * Emacs Config
 ** Let's get bootstrapped
-*** Turn on debug
-#+BEGIN_SRC emacs-lisp :tangle yes
-(setq debug-on-error t)
-(setq debug-on-quit t)
+*** Package Quickstart
+#+BEGIN_SRC emacs-lisp :tangle no
+(setq package-quickstart)
 #+END_SRC
+*** File handler checker
+
+*** Garbage Collection
 *** Setup package repositories
 #+BEGIN_SRC emacs-lisp :tangle yes
           (require 'cl)
@@ -630,7 +632,7 @@ Setup some variables for use in other config files
 (defvar running-alternate-emacs nil)
 #+END_SRC
 Linux
-,#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (when *is-linux*
   ;; Whether to use GTK tooltips or emacs ones
   (setq x-gtk-use-system-tooltips t)
