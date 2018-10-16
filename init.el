@@ -1,5 +1,5 @@
 ;;; init.el -*- lexical-binding: t; -*-
-;; Time-stamp: <2018-10-15 22:49:55 daniel.newman>
+;; Time-stamp: <2018-10-16 08:27:31 daniel.newman>
 
 ;; Copyright (C) 2016-2018 Daniel Newman
 ;; Author: Daniel Newman <dwnewman78@gmail.com>
@@ -38,7 +38,7 @@
 (load (locate-user-emacs-file "general.el") nil :nomessage)
 
 ;; run package-initialize if running emacs version < 27
-(>=e "27.0"
+(>=e "27.1"
     nil
   (package-initialize))
 
@@ -51,8 +51,8 @@
 (require 'setup-selected)
 (require 'setup-treemacs)
 (require 'setup-search)
-;; (require 'setup-rg)
-;; (require 'setup-ibuffer)
+(require 'setup-rg)
+(require 'setup-ibuffer)
 ;; (require 'setup-recentf)
 ;; (require 'setup-desktop)
 ;; (require 'setup-calc)
@@ -64,7 +64,7 @@
 (require 'setup-hydra)
 (require 'setup-company)
 ;; (require 'setup-smartparens)
-;; (require 'setup-git-stuff)
+(require 'setup-git-stuff)
 ;; (require 'setup-avy)
 ;; (require 'setup-ace-window)
 ;; (require 'setup-projectile)
