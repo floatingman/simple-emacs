@@ -1,5 +1,5 @@
 ;;; init.el -*- lexical-binding: t; -*-
-;; Time-stamp: <2018-10-16 10:08:05 daniel.newman>
+;; Time-stamp: <2018-10-16 11:41:06 dnewman>
 
 ;; Copyright (C) 2016-2018 Daniel Newman
 ;; Author: Daniel Newman <dwnewman78@gmail.com>
@@ -38,7 +38,7 @@
 (load (locate-user-emacs-file "general.el") nil :nomessage)
 
 ;; run package-initialize if running emacs version < 27
-(>=e "27.1"
+(>=e "27.0"
     nil
   (package-initialize))
 
@@ -54,20 +54,20 @@
 (require 'setup-rg)
 (require 'setup-ibuffer)
 (require 'setup-recentf)
-;; (require 'setup-desktop)
-;; (require 'setup-calc)
-;; (require 'setup-ediff)
-;; (require 'setup-dired)
+(require 'setup-desktop)
+(require 'setup-calc)
+(require 'setup-ediff)
+(require 'setup-dired)
 (require 'setup-elisp-mode)
-;; (require 'setup-fly)
-;; (require 'setup-bookmark)
+(require 'setup-fly)
+(require 'setup-bookmark)
 (require 'setup-hydra)
 (require 'setup-company)
-;; (require 'setup-smartparens)
+(require 'setup-smartparens)
 (require 'setup-git-stuff)
-;; (require 'setup-avy)
-;; (require 'setup-ace-window)
-;; (require 'setup-projectile)
+(require 'setup-avy)
+(require 'setup-ace-window)
+(require 'setup-projectile)
 ;; (require 'setup-yas)
 ;; (require 'setup-buffers)
 (require 'setup-ivy)
