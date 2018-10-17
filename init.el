@@ -1,5 +1,5 @@
 ;;; init.el -*- lexical-binding: t; -*-
-;; Time-stamp: <2018-10-16 23:20:49 dnewman>
+;; Time-stamp: <2018-10-17 13:36:52 daniel.newman>
 
 ;; Copyright (C) 2016-2018 Daniel Newman
 ;; Author: Daniel Newman <dwnewman78@gmail.com>
@@ -84,6 +84,7 @@
 (require 'setup-cc)
 (require 'setup-haskell)
 (require 'setup-python)
+(require 'setup-elasticsearch)
 (require 'setup-tex)
 (require 'setup-origami)
 (require 'setup-duplicate-line)
