@@ -1,7 +1,7 @@
 ;;; early-init.el -*- lexical-binding: t; -*-
-;; Time-stamp: <2018-10-15 20:58:17 daniel.newman>
+;; Time-stamp: <2018-10-16 17:52:07 dnewman>
 
 ;; Copyright (C) 2018-2018 Daniel Newman
 ;; Author: Daniel Newman <dwnewman78@gmail.com>
 
-(setq package-quickstart t)
+(setq package-quickstart nil)

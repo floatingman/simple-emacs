@@ -1,5 +1,5 @@
 ;;; init.el -*- lexical-binding: t; -*-
-;; Time-stamp: <2018-10-16 11:41:06 dnewman>
+;; Time-stamp: <2018-10-16 17:57:35 dnewman>
 
 ;; Copyright (C) 2016-2018 Daniel Newman
 ;; Author: Daniel Newman <dwnewman78@gmail.com>
@@ -68,15 +68,15 @@
 (require 'setup-avy)
 (require 'setup-ace-window)
 (require 'setup-projectile)
-;; (require 'setup-yas)
-;; (require 'setup-buffers)
+(require 'setup-yas)
+(require 'setup-buffers)
 (require 'setup-ivy)
 (require 'setup-counsel)
 (require 'setup-swiper)
-;; (require 'setup-movement)
+(require 'setup-movement)
 (require 'setup-markdown)
 (require 'setup-highlight)
-;; (require 'setup-info)
+(require 'setup-info)
 (require 'setup-mode-line)
 (require 'setup-editing)
 ;; (require 'setup-racket)
@@ -101,7 +101,7 @@
 (require 'setup-which-key)
 ;; (require 'setup-kurecolor)
 ;; (require 'setup-erc)
-;; (require 'setup-font-check)
+(require 'setup-font-check)
 (require 'setup-iosevka-ligatures)
 ;; (require 'setup-misc)
 (require 'setup-visual)
