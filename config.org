@@ -1278,6 +1278,19 @@ Version 2016-11-22"
 
 (global-set-key (kbd "M-n") 'xah-goto-matching-bracket)
 #+END_SRC
+** Hydra
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package hydra :ensure t)
+(defhydra my/hydra nil
+ "
+   [_s_] Skeletons
+"
+ ("s" my/hydra-skeleton/body :exit t)
+ ("q" nil :exit t))
+;; Bind the main hyrda to M-t
+(global-set-key (kbd "M-t")    'my/hydra/body)
+
+#+END_SRC
 ** Smartparens
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package smartparens :ensure t
@@ -1637,19 +1650,6 @@ Version 2017-11-01"
     $buf
     ))
 (global-set-key (kbd "<f7>") 'xah-new-empty-buffer)
-#+END_SRC
-** Hydra
-#+BEGIN_SRC emacs-lisp :tangle yes
-(use-package hydra :ensure t)
-(defhydra my/hydra nil
- "
-   [_s_] Skeletons
-"
- ("s" my/hydra-skeleton/body :exit t)
- ("q" nil :exit t))
-;; Bind the main hyrda to M-t
-(global-set-key (kbd "M-t")    'my/hydra/body)
-
 #+END_SRC
 
 ** Flycheck vs Flyspell
