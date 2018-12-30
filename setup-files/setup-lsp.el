@@ -1,5 +1,5 @@
 ;;; setup-lsp.el -*- lexical-binding: t; -*-
-;; Time-stamp: <2018-10-16 19:34:33 dnewman>
+;; Time-stamp: <2018-12-29 22:15:58 dnewman>
 
 ;; Copyright (C) 2016-2018 Chakravarthy Raghunandan
 ;; Author: Chakravarthy Raghunandan <rnraghunandan@gmail.com>
@@ -8,9 +8,7 @@
 ;; https://github.com/emacs-lsp/lsp-mode
 (use-package lsp-mode
   :config
-  (setq lsp-rust-rls-command '("rustup" "run" "nightly" "rls"))
-  (add-to-list 'lsp-project-blacklist "^/Users/csraghunandan/Library/Caches/Homebrew/emacs--git/$")
-  (add-to-list 'lsp-project-blacklist "^/Users/csraghunandan/\\.emacs\\.d/$"))
+  (setq lsp-rust-rls-command '("rustup" "run" "nightly" "rls")))
 
 ;; company-lsp: Company completion backend for lsp-mode.
 ;; https://github.com/tigersoldier/company-lsp/

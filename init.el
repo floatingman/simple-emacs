@@ -1,5 +1,5 @@
 ;;; init.el -*- lexical-binding: t; -*-
-;; Time-stamp: <2018-10-17 13:36:52 daniel.newman>
+;; Time-stamp: <2018-12-29 22:14:23 dnewman>
 
 ;; Copyright (C) 2016-2018 Daniel Newman
 ;; Author: Daniel Newman <dwnewman78@gmail.com>
@@ -79,7 +79,7 @@
 (require 'setup-info)
 (require 'setup-mode-line)
 (require 'setup-editing)
-(require 'setup-rust)
+;; (require 'setup-rust)
 (require 'setup-lsp)
 (require 'setup-cc)
 (require 'setup-haskell)

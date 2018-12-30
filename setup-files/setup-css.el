@@ -1,5 +1,5 @@
 ;;; setup-css.el -*- lexical-binding: t; -*-
-;; Time-stamp: <2018-10-16 21:51:43 dnewman>
+;; Time-stamp: <2018-12-30 17:37:31 dnewman>
 
 ;; Copyright (C) 2016-2018 Chakravarthy Raghunandan
 ;; Author: Chakravarthy Raghunandan <rnraghunandan@gmail.com>
@@ -33,12 +33,6 @@
       (lsp-css-enable)))
 
   (setq css-indent-offset 2))
-
-;; CSS, LESS, and SCSS/SASS support for lsp-mode using vscode-css-languageserver-bin
-;; https://github.com/emacs-lsp/lsp-css
-(use-package lsp-css
-  :ensure-system-package
-  (css-languageserver . "npm i -g vscode-html-languageserver-bin"))
 
 (use-package less-css-mode              ; Mode for Less CSS files
   :ensure nil
