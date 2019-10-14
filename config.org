@@ -1730,10 +1730,7 @@ Version 2017-11-01"
         lsp-ui-flycheck-enable t
         lsp-ui-imenu-enable t
         lsp-ui-sideline-ignore-duplicate t))
-(use-package lsp-html
-  :ensure t
-  :ensure-system-package
-  (html-languageserver . "npm i -g vscode-html-languageserver-bin"))
+
 #+END_SRC
 
 ** Languages
