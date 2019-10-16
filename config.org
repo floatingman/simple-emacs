@@ -1746,7 +1746,6 @@ Here is where I keep language specific config
                               (my-tide-setup-hook)
                               (add-node-modules-path)
                               (company-mode))))
-  :ensure-system-package (tslint . "npm i -g tslint")
   :bind ((:map typescript-mode-map
                ("C-c C-t" . tide-documentation-at-point)
                ("C-c T p" . typescript/open-region-in-playground)))
@@ -1821,9 +1820,6 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
                          (flycheck-mode)
                          (my-tide-setup-hook)
                          (company-mode))))
-    :ensure-system-package ((prettier . "npm i -g prettier")
-                            (eslint . "npm i -g eslint")
-                            (eslint_d . "npm i -g eslint_d"))
     :config
     ;; two spaces is what everyone should use
     (setq js-indent-level 2
