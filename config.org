@@ -1572,6 +1572,7 @@ This helps visualize version changes in a file
 ** Doom Themes
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package doom-themes :ensure t)
+(load-theme 'doom-gruvbox)
 #+END_SRC
 ** Ewww page break characters
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -2698,7 +2699,7 @@ bindings I use more frequently:
 ** Spacemacs theme
 #+BEGIN_SRC emacs-lisp :tangle yes
 (install-pkgs '(spacemacs-theme))
-(load-theme 'spacemacs-light)
+;(load-theme 'spacemacs-light)
 #+END_SRC
 ** Groovy
 #+BEGIN_SRC emacs-lisp :tangle yes
