@@ -2137,7 +2137,11 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
 (use-package elpy
   :ensure t
   :config
-  (elpy-enable))
+  (elpy-enable)
+  ;; Enable Flycheck
+  (when (require 'flycheck nil t)
+    (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
+    (add-hook 'elpy-mode-hook 'flycheck-mode)))
 (use-package eglot :ensure t)
 (defun ssbb-pyenv-hook ()
   "Automatically activates pyenv version if .python-version file exists."
