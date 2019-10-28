@@ -2142,22 +2142,14 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
     (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
     (add-hook 'elpy-mode-hook 'flycheck-mode))
   (use-package py-autopep8 :ensure t)
-  (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
-  ;; Use IPython for REPL
-  (setq python-shell-interpreter "ipython"
-        python-shell-interpreter-args "console --simple-prompt"
-        python-shell-prompt-detect-failure-warning nil)
-  (add-to-list 'python-shell-completion-native-disabled-interpreters
-               "ipython"))
+  (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save))
+;; Use Jupyter for REPL
+(setq python-shell-interpreter "ipython"
+      python-shell-interpreter-args "--simple-prompt -c exec('__import__(\\'readline\\')') -i"
+      python-shell-prompt-detect-failure-warning nil)
+(add-to-list 'python-shell-completion-native-disabled-interpreters
+             "jupyter")
 (use-package eglot :ensure t)
-(defun ssbb-pyenv-hook ()
-  "Automatically activates pyenv version if .python-version file exists."
-  (f-traverse-upwards
-   (lambda (path)
-     (let ((pyenv-version-path (f-expand ".python-version" path)))
-       (if (f-exists? pyenv-version-path)
-           (pyenv-mode-set (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
-(add-hook 'find-file-hook 'ssbb-pyenv-hook)
 (use-package blacken :ensure t)
 (use-package py-autopep8 :ensure t)
 #+END_SRC
