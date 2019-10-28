@@ -2148,7 +2148,7 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
       python-shell-interpreter-args "--simple-prompt -c exec('__import__(\\'readline\\')') -i"
       python-shell-prompt-detect-failure-warning nil)
 (add-to-list 'python-shell-completion-native-disabled-interpreters
-             "jupyter")
+             "ipython")
 (use-package eglot :ensure t)
 (use-package blacken :ensure t)
 (use-package py-autopep8 :ensure t)
