@@ -7,109 +7,109 @@
 #+END_SRC
 *** Setup package repositories
 #+BEGIN_SRC emacs-lisp :tangle yes
-          (require 'cl)
-          (require 'package)
+(require 'cl)
+(require 'package)
 
-          (setq package-enable-at-startup nil)
+(setq package-enable-at-startup nil)
 
-          ;; orgmode.org unfortunately does not support https
-          (add-to-list 'package-archives
-                       '("org" . "http://orgmode.org/elpa/") t)
-          (add-to-list 'package-archives
-                       '("gnu" . "https://elpa.gnu.org/packages/") t)
-          (add-to-list 'package-archives
-                       '("melpa-stable" . "https://stable.melpa.org/packages/") t)
-          (add-to-list 'package-archives
-                       '("melpa" . "https://melpa.org/packages/") t)
+;; orgmode.org unfortunately does not support https
+(add-to-list 'package-archives
+             '("org" . "http://orgmode.org/elpa/") t)
+(add-to-list 'package-archives
+             '("gnu" . "https://elpa.gnu.org/packages/") t)
+(add-to-list 'package-archives
+             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+(add-to-list 'package-archives
+             '("melpa" . "https://melpa.org/packages/") t)
 
-          (unless package--initialized (package-initialize t))
+(unless package--initialized (package-initialize t))
 
-          (when (< emacs-major-version 27)
-            (package-initialize))
+(when (< emacs-major-version 27)
+  (package-initialize))
 
-          (setq use-package-enable-imenu-support t)
+(setq use-package-enable-imenu-support t)
 
-          ;; Install use-package
-          (unless (package-installed-p 'use-package)
-            (package-refresh-contents)
-            (package-install 'use-package)) ;
-        (eval-when-compile (require 'use-package))
-      (require 'bind-key)
+;; Install use-package
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package)) ;
+(eval-when-compile (require 'use-package))
+(require 'bind-key)
 
-      (use-package system-packages
-        :ensure t)
+(use-package system-packages
+  :ensure t)
 
-      ;; https://github.com/emacsorphanage/key-chord/tree/master
-      (use-package key-chord
-        :hook (emacs-startup . (lambda ()
-    (key-chord-mode 1))))
-    (use-package use-package-chords
-    :ensure t)
-    (use-package use-package-ensure-system-package
-      :ensure t)
+;; https://github.com/emacsorphanage/key-chord/tree/master
+(use-package key-chord
+  :hook (emacs-startup . (lambda ()
+                           (key-chord-mode 1))))
+(use-package use-package-chords
+  :ensure t)
+(use-package use-package-ensure-system-package
+  :ensure t)
 
-    ;; http://emacs.stackexchange.com/a/26513/115
-    (defun modi/package-dependency-check-ignore (orig-ret)
-      "Remove the `black listed packages' from ORIG-RET.
+;; http://emacs.stackexchange.com/a/26513/115
+(defun modi/package-dependency-check-ignore (orig-ret)
+  "Remove the `black listed packages' from ORIG-RET.
     Packages listed in the let-bound `pkg-black-list' will not be auto-installed
     even if they are found as dependencies.
     It is known that this advice is not effective when installed packages
     asynchronously using `paradox'. Below is effective on synchronous
     package installations."
-      (let ((pkg-black-list '(org))
-            new-ret
-            pkg-name)
-        ;; (message "before %S" orig-ret)
-        (dolist (pkg-struct orig-ret)
-          (setq pkg-name (package-desc-name pkg-struct))
-          (if (member pkg-name pkg-black-list)
-              (message (concat "Package `%s' will not be installed. "
-                               "See `modi/package-dependency-check-ignore'.")
-                       pkg-name)
-            ;; (message "Package to be installed: %s" pkg-name)
-            (push pkg-struct new-ret)))
-        ;; Tue Apr 11 17:48:16 EDT 2017 - kmodi
-        ;; It's *very* critical that the order of packages stays the same in NEW-RET
-        ;; as in ORIG-RET. The `push' command flips the order, so use `reverse'
-        ;; to flip the order back to the original.
-        ;;   Without this step, you will get errors like below when installing
-        ;; packages with dependencies:
-        ;;   Debugger entered--Lisp error: (error "Unable to activate package ‘nim-mode’.
-        ;;   Required package ‘flycheck-28’ is unavailable")
-        (setq new-ret (reverse new-ret))
-        ;; (message "after  %S" new-ret)
-        new-ret))
-    (advice-add 'package-compute-transaction :filter-return #'modi/package-dependency-check-ignore)
+  (let ((pkg-black-list '(org))
+        new-ret
+        pkg-name)
+    ;; (message "before %S" orig-ret)
+    (dolist (pkg-struct orig-ret)
+      (setq pkg-name (package-desc-name pkg-struct))
+      (if (member pkg-name pkg-black-list)
+          (message (concat "Package `%s' will not be installed. "
+                           "See `modi/package-dependency-check-ignore'.")
+                   pkg-name)
+        ;; (message "Package to be installed: %s" pkg-name)
+        (push pkg-struct new-ret)))
+    ;; Tue Apr 11 17:48:16 EDT 2017 - kmodi
+    ;; It's *very* critical that the order of packages stays the same in NEW-RET
+    ;; as in ORIG-RET. The `push' command flips the order, so use `reverse'
+    ;; to flip the order back to the original.
+    ;;   Without this step, you will get errors like below when installing
+    ;; packages with dependencies:
+    ;;   Debugger entered--Lisp error: (error "Unable to activate package ‘nim-mode’.
+    ;;   Required package ‘flycheck-28’ is unavailable")
+    (setq new-ret (reverse new-ret))
+    ;; (message "after  %S" new-ret)
+    new-ret))
+(advice-add 'package-compute-transaction :filter-return #'modi/package-dependency-check-ignore)
 
-          (defvar my/did-refresh-packages nil
-            "Flag for whether packages have been refreshed yet")
+(defvar my/did-refresh-packages nil
+  "Flag for whether packages have been refreshed yet")
 
-          ;; Utility to install a list of packages
-          (defun install-pkgs (list)
-            (dolist (pkg list)
-              (progn
-                (if (not (package-installed-p pkg))
-                    (progn
-                      (if (not my/did-refresh-packages)
-                          (progn (package-refresh-contents)
-                                 (setq my/did-refresh-packages t)))
-                      (package-install pkg))))))
+;; Utility to install a list of packages
+(defun install-pkgs (list)
+  (dolist (pkg list)
+    (progn
+      (if (not (package-installed-p pkg))
+          (progn
+            (if (not my/did-refresh-packages)
+                (progn (package-refresh-contents)
+                       (setq my/did-refresh-packages t)))
+            (package-install pkg))))))
 
-          ;;Pin some of the packages that go wonky if I use the bleeding edge.
+;;Pin some of the packages that go wonky if I use the bleeding edge.
 
-          (when (boundp 'package-pinned-packages)
-            (setq package-pinned-packages
-                  '((org-plus-contrib                  . "org")
-                    (cider                             . "melpa-stable")
-                    (ac-cider                          . "melpa-stable")
-                    (clojure-mode                      . "melpa-stable")
-                    (clojure-mode-extra-font-locking   . "melpa-stable")
-                    (company-cider                     . "melpa-stable"))))
+(when (boundp 'package-pinned-packages)
+  (setq package-pinned-packages
+        '((org-plus-contrib                  . "org")
+          (cider                             . "melpa-stable")
+          (ac-cider                          . "melpa-stable")
+          (clojure-mode                      . "melpa-stable")
+          (clojure-mode-extra-font-locking   . "melpa-stable")
+          (company-cider                     . "melpa-stable"))))
 
-          ;; Load use-package, used for loading packages everywhere else
-          (require 'use-package nil t)
-          ;; Set to t to debug package loading or nil to disable
-          (setq use-package-verbose nil)
+;; Load use-package, used for loading packages everywhere else
+(require 'use-package nil t)
+;; Set to t to debug package loading or nil to disable
+(setq use-package-verbose nil)
 #+END_SRC
 *** Display loading information
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -632,9 +632,9 @@ Setup some variables for use in other config files
 Linux
 ,#+BEGIN_SRC emacs-lisp :tangle yes
 (when *is-linux*
-  ;; Whether to use GTK tooltips or emacs ones
-  (setq x-gtk-use-system-tooltips t)
-  (setq dired-listing-switches "-lFaGh1v --group-directories-first"))
+;; Whether to use GTK tooltips or emacs ones
+(setq x-gtk-use-system-tooltips t)
+(setq dired-listing-switches "-lFaGh1v --group-directories-first"))
 #+END_SRC
 
 Mac OSX
@@ -680,9 +680,9 @@ An alternative to GAAAWWWWWWWWWWWD mode
   (define-key god-local-mode-map (kbd "z") 'repeat)
   (define-key god-local-mode-map (kbd "i") 'god-local-mode)
   (defun my-update-cursor ()
-  (setq cursor-type (if (or god-local-mode buffer-read-only)
-                        'box
-                      'bar)))
+    (setq cursor-type (if (or god-local-mode buffer-read-only)
+                          'box
+                        'bar)))
 
   (add-hook 'god-mode-enabled-hook 'my-update-cursor)
   (add-hook 'god-mode-disabled-hook 'my-update-cursor)
@@ -1221,7 +1221,7 @@ Move cursor to brackets
 (defvar xah-left-brackets '("(" "{" "[" "<" "〔" "【" "〖" "〈" "《" "「" "『" "“" "‘" "‹" "«" )
   "List of left bracket chars.")
 (progn
-;; make xah-left-brackets based on xah-brackets
+  ;; make xah-left-brackets based on xah-brackets
   (setq xah-left-brackets '())
   (dotimes ($x (- (length xah-brackets) 1))
     (when (= (% $x 2) 0)
@@ -1282,11 +1282,11 @@ Version 2016-11-22"
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package hydra :ensure t)
 (defhydra my/hydra nil
- "
+  "
    [_s_] Skeletons
 "
- ("s" my/hydra-skeleton/body :exit t)
- ("q" nil :exit t))
+  ("s" my/hydra-skeleton/body :exit t)
+  ("q" nil :exit t))
 ;; Bind the main hyrda to M-t
 (global-set-key (kbd "M-t")    'my/hydra/body)
 
@@ -1294,104 +1294,104 @@ Version 2016-11-22"
 ** Smartparens
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package smartparens :ensure t
-:config
-(setq sp-ignore-modes-list (quote (minibuffer-inactive-mode
-Info-mode
-term-mode
-org-mode
-org-journal-mode
-markdown-mode
-ivy-occur-mode)))
+  :config
+  (setq sp-ignore-modes-list (quote (minibuffer-inactive-mode
+                                     Info-mode
+                                     term-mode
+                                     org-mode
+                                     org-journal-mode
+                                     markdown-mode
+                                     ivy-occur-mode)))
 
-;; macro to wrap the current sexp at point
-(defmacro def-pairs (pairs)
-`(progn
-,@(cl-loop for (key . val) in pairs
-collect
-`(defun ,(read (concat
-"wrap-with-"
-(prin1-to-string key)
-"s"))
-(&optional arg)
-(interactive "p")
-(sp-wrap-with-pair ,val)))))
-(def-pairs ((paren . "(")
-(bracket . "[")
-(brace . "{")
-(single-quote . "'")
-(double-quote . "\"")
-(back-quote . "`")))
+  ;; macro to wrap the current sexp at point
+  (defmacro def-pairs (pairs)
+    `(progn
+       ,@(cl-loop for (key . val) in pairs
+                  collect
+                  `(defun ,(read (concat
+                                  "wrap-with-"
+                                  (prin1-to-string key)
+                                  "s"))
+                       (&optional arg)
+                     (interactive "p")
+                     (sp-wrap-with-pair ,val)))))
+  (def-pairs ((paren . "(")
+              (bracket . "[")
+              (brace . "{")
+              (single-quote . "'")
+              (double-quote . "\"")
+              (back-quote . "`")))
 
-(bind-keys
-:map smartparens-mode-map
-("C-M-f" . sp-forward-sexp)
-("C-M-b" . sp-backward-sexp)
-("C-M-d" . sp-down-sexp)
-("C-M-a" . sp-backward-down-sexp)
-("C-S-d" . sp-beginning-of-sexp)
-("C-S-a" . sp-end-of-sexp)
-("C-M-e" . sp-up-sexp)
-("C-M-u" . sp-backward-up-sexp)
-("M-P" . sp-previous-sexp)
-("M-N" . sp-next-sexp)
-("C-M-k" . sp-kill-sexp)
-("C-M-w" . sp-copy-sexp)
-("M-<delete>" . sp-unwrap-sexp)
-("M-<backspace>" . sp-backward-unwrap-sexp)
-("C-<right>" . sp-forward-slurp-sexp)
-("C-<left>" . sp-forward-barf-sexp)
-("C-M-<left>" . sp-backward-slurp-sexp)
-("C-M-<right>" . sp-backward-barf-sexp)
-("M-D" . sp-splice-sexp)
-("C-M-<delete>" . sp-splice-sexp-killing-forward)
-("C-M-<backspace>" . sp-splice-sexp-killing-backward)
-("C-S-<backspace>" . sp-splice-sexp-killing-around)
-("C-]" . sp-select-next-thing-exchange)
-("C-M-]" . sp-select-next-thing)
-("C-M-SPC" . sp-mark-sexp)
-("M-F" . sp-forward-symbol)
-("M-B" . sp-backward-symbol)
+  (bind-keys
+   :map smartparens-mode-map
+   ("C-M-f" . sp-forward-sexp)
+   ("C-M-b" . sp-backward-sexp)
+   ("C-M-d" . sp-down-sexp)
+   ("C-M-a" . sp-backward-down-sexp)
+   ("C-S-d" . sp-beginning-of-sexp)
+   ("C-S-a" . sp-end-of-sexp)
+   ("C-M-e" . sp-up-sexp)
+   ("C-M-u" . sp-backward-up-sexp)
+   ("M-P" . sp-previous-sexp)
+   ("M-N" . sp-next-sexp)
+   ("C-M-k" . sp-kill-sexp)
+   ("C-M-w" . sp-copy-sexp)
+   ("M-<delete>" . sp-unwrap-sexp)
+   ("M-<backspace>" . sp-backward-unwrap-sexp)
+   ("C-<right>" . sp-forward-slurp-sexp)
+   ("C-<left>" . sp-forward-barf-sexp)
+   ("C-M-<left>" . sp-backward-slurp-sexp)
+   ("C-M-<right>" . sp-backward-barf-sexp)
+   ("M-D" . sp-splice-sexp)
+   ("C-M-<delete>" . sp-splice-sexp-killing-forward)
+   ("C-M-<backspace>" . sp-splice-sexp-killing-backward)
+   ("C-S-<backspace>" . sp-splice-sexp-killing-around)
+   ("C-]" . sp-select-next-thing-exchange)
+   ("C-M-]" . sp-select-next-thing)
+   ("C-M-SPC" . sp-mark-sexp)
+   ("M-F" . sp-forward-symbol)
+   ("M-B" . sp-backward-symbol)
 
-("C-c R" . sp-rewrap-sexp)
-("M-[" . sp-backward-unwrap-sexp)
-("M-]" . sp-unwrap-sexp)
+   ("C-c R" . sp-rewrap-sexp)
+   ("M-[" . sp-backward-unwrap-sexp)
+   ("M-]" . sp-unwrap-sexp)
 
-("C-c s j" . sp-join-sexp)
-("C-c s s" . sp-split-sexp)
+   ("C-c s j" . sp-join-sexp)
+   ("C-c s s" . sp-split-sexp)
 
-("C-c )" . wrap-with-parens)
-("C-c ]" . wrap-with-brackets)
-("C-c }" . wrap-with-braces)
-("C-c '" . wrap-with-single-quotes)
-("C-c \"" . wrap-with-double-quotes)
-("C-c `" . wrap-with-back-quotes))
+   ("C-c )" . wrap-with-parens)
+   ("C-c ]" . wrap-with-brackets)
+   ("C-c }" . wrap-with-braces)
+   ("C-c '" . wrap-with-single-quotes)
+   ("C-c \"" . wrap-with-double-quotes)
+   ("C-c `" . wrap-with-back-quotes))
 
-;; enable smartparens globally
-(smartparens-global-mode)
-(smartparens-global-strict-mode) ; only allows you to insert or delete
-; brackets in pairs
-(show-smartparens-global-mode +1)
+  ;; enable smartparens globally
+  (smartparens-global-mode)
+  (smartparens-global-strict-mode) ; only allows you to insert or delete
+                                        ; brackets in pairs
+  (show-smartparens-global-mode +1)
 
-(require 'smartparens-config)
+  (require 'smartparens-config)
 
-;; indent with braces for C like languages
-(sp-with-modes '(rust-mode
-js2-mode
-css-mode
-web-mode
-typescript-mode
-c-mode
-c++-mode
-sh-mode
-go-mode
-shell-mode)
-(sp-local-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
-(sp-local-pair "/*" "*/" :post-handlers '((" | " "SPC")
-("* ||\n[i]" "RET"))))
+  ;; indent with braces for C like languages
+  (sp-with-modes '(rust-mode
+                   js2-mode
+                   css-mode
+                   web-mode
+                   typescript-mode
+                   c-mode
+                   c++-mode
+                   sh-mode
+                   go-mode
+                   shell-mode)
+    (sp-local-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
+    (sp-local-pair "/*" "*/" :post-handlers '((" | " "SPC")
+                                              ("* ||\n[i]" "RET"))))
 
-(bind-key "C-c h s"
-(defhydra smartparens-hydra (:hint nil)
-"
+  (bind-key "C-c h s"
+            (defhydra smartparens-hydra (:hint nil)
+              "
 _d_: down           _a_: back-down        _f_: -> sexp    _k_: hyb-kill      _c_-_a_: begin
 _e_: up             _u_: back-up          _b_: <- sexp    _K_: kill          _c_-_e_: end
 _[_: back-unwrap    _]_: unwrap           _r_: rewrap     _m_: mark            _j_: join
@@ -1399,44 +1399,44 @@ _p_: prev           _n_: next             _c_: copy       _s_: mark-thing      _
 _t_: transpose      _T_: hyb-transpose    _q_: quit
 "
 
-("d" sp-down-sexp)
-("e" sp-up-sexp)
-("u" sp-backward-up-sexp)
-("a" sp-backward-down-sexp)
-("f" sp-forward-sexp)
-("b" sp-backward-sexp)
-("k" sp-kill-hybrid-sexp)
-("t" sp-transpose-sexp)
-("T" sp-transpose-hybrid-sexp)
-("K" sp-kill-sexp)
-("[" sp-backward-unwrap-sexp)
-("]" sp-unwrap-sexp)
-("r" sp-rewrap-sexp)
-("p" sp-previous-sexp)
-("n" sp-next-sexp)
-("j" sp-join-sexp)
-("|" sp-split-sexp)
-("c" sp-copy-sexp)
-("s" sp-select-next-thing :color blue)
-("m" sp-mark-sexp :color blue)
-("q" nil :color blue))
-smartparens-mode-map)
+              ("d" sp-down-sexp)
+              ("e" sp-up-sexp)
+              ("u" sp-backward-up-sexp)
+              ("a" sp-backward-down-sexp)
+              ("f" sp-forward-sexp)
+              ("b" sp-backward-sexp)
+              ("k" sp-kill-hybrid-sexp)
+              ("t" sp-transpose-sexp)
+              ("T" sp-transpose-hybrid-sexp)
+              ("K" sp-kill-sexp)
+              ("[" sp-backward-unwrap-sexp)
+              ("]" sp-unwrap-sexp)
+              ("r" sp-rewrap-sexp)
+              ("p" sp-previous-sexp)
+              ("n" sp-next-sexp)
+              ("j" sp-join-sexp)
+              ("|" sp-split-sexp)
+              ("c" sp-copy-sexp)
+              ("s" sp-select-next-thing :color blue)
+              ("m" sp-mark-sexp :color blue)
+              ("q" nil :color blue))
+            smartparens-mode-map)
 
-(setq sp-show-pair-from-inside t)
-;; show matching paren instantly
-(setq sp-show-pair-delay 0.1)
+  (setq sp-show-pair-from-inside t)
+  ;; show matching paren instantly
+  (setq sp-show-pair-delay 0.1)
 
-;; no more pair mismatch messages
-(setq sp-message-width nil)
+  ;; no more pair mismatch messages
+  (setq sp-message-width nil)
 
-(defun sp-strict-kill-line-or-region (&optional arg)
-"Kill active region or current line."
-(interactive "p")
-(if (use-region-p)
-(sp-kill-region (region-beginning) (region-end))
-(sp-kill-whole-line)))
+  (defun sp-strict-kill-line-or-region (&optional arg)
+    "Kill active region or current line."
+    (interactive "p")
+    (if (use-region-p)
+        (sp-kill-region (region-beginning) (region-end))
+      (sp-kill-whole-line)))
 
-(bind-key* "C-w" #'sp-strict-kill-line-or-region smartparens-mode-map))
+  (bind-key* "C-w" #'sp-strict-kill-line-or-region smartparens-mode-map))
 #+END_SRC
 ** Drop down and give me 20, Magit!
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -1486,7 +1486,7 @@ This helps visualize version changes in a file
          ("C-c G" . git-gutter:popup-hunk))
   :diminish ""
   :init
-    (add-hook 'prog-mode-hook #'git-gutter-mode)
+  (add-hook 'prog-mode-hook #'git-gutter-mode)
   (add-hook 'text-mode-hook #'git-gutter-mode)
   :config
   (use-package git-gutter-fringe
@@ -1741,7 +1741,7 @@ Here is where I keep language specific config
 ;; typescript: major mode for editing typescript files
 ;; https://github.com/ananthakumaran/typescript.el
 (use-package typescript-mode
-:ensure t
+  :ensure t
   :hook ((typescript-mode . (lambda ()
                               (my-tide-setup-hook)
                               (add-node-modules-path)
@@ -1763,7 +1763,7 @@ Here is where I keep language specific config
 ;; tide: TypeScript Interactive Development Environment for Emacs
 ;; https://github.com/ananthakumaran/tide
 (use-package tide
-:ensure t
+  :ensure t
   :after typescript-mode
   :config
   (defun my-tide-setup-hook ()
@@ -1814,68 +1814,68 @@ Here is where I keep language specific config
 Javascript is hip
 Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunandan]]
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package js2-mode
+(use-package js2-mode
   :ensure t
-    :mode (("\\.js$" . js2-mode))
-    :hook ((js2-mode . (lambda ()
-                         (flycheck-mode)
-                         (my-tide-setup-hook)
-                         (company-mode))))
-    :ensure-system-package ((prettier . "npm i -g prettier")
-                            (eslint . "npm i -g eslint")
-                            (eslint_d . "npm i -g eslint_d"))
-    :config
-    ;; two spaces is what everyone should use
-    (setq js-indent-level 2
-          js2-basic-offset 2
-          js-chain-indent t)
+  :mode (("\\.js$" . js2-mode))
+  :hook ((js2-mode . (lambda ()
+                       (flycheck-mode)
+                       (my-tide-setup-hook)
+                       (company-mode))))
+  :ensure-system-package ((prettier . "npm i -g prettier")
+                          (eslint . "npm i -g eslint")
+                          (eslint_d . "npm i -g eslint_d"))
+  :config
+  ;; two spaces is what everyone should use
+  (setq js-indent-level 2
+        js2-basic-offset 2
+        js-chain-indent t)
 
-    ;; use eslint_d instead of eslint for faster linting
-    (setq flycheck-javascript-eslint-executable "eslint_d")
+  ;; use eslint_d instead of eslint for faster linting
+  (setq flycheck-javascript-eslint-executable "eslint_d")
 
-    ;; Try to hightlight most ECMA built-ins
-    (setq js2-highlight-level 3)
+  ;; Try to hightlight most ECMA built-ins
+  (setq js2-highlight-level 3)
 
-      ;; turn off all warnings in js2-mode
-    (setq js2-mode-show-parse-errors t)
-    (setq js2-mode-show-strict-warnings nil)
-    (setq js2-strict-missing-semi-warning nil)
+  ;; turn off all warnings in js2-mode
+  (setq js2-mode-show-parse-errors t)
+  (setq js2-mode-show-strict-warnings nil)
+  (setq js2-strict-missing-semi-warning nil)
 
-    (defun my-tide-setup-hook ()
-      ;; configure tide
-      (tide-setup)
-      ;; highlight identifiers
-      (tide-hl-identifier-mode +1)
-      ;;enable eldoc-mode
-      (eldoc-mode)
-      ;; enable flycheck
-      (flycheck-mode)
+  (defun my-tide-setup-hook ()
+    ;; configure tide
+    (tide-setup)
+    ;; highlight identifiers
+    (tide-hl-identifier-mode +1)
+    ;;enable eldoc-mode
+    (eldoc-mode)
+    ;; enable flycheck
+    (flycheck-mode)
 
-      ;; format typescript files using prettier
-      (prettier-js-mode)
+    ;; format typescript files using prettier
+    (prettier-js-mode)
 
-      ;; company-backends setup
-      (set (make-local-variable 'company-backends)
-           '((company-tide company-files :with company-yasnippet)
-             (company-dabbrev-code company-dabbrev)))
+    ;; company-backends setup
+    (set (make-local-variable 'company-backends)
+         '((company-tide company-files :with company-yasnippet)
+           (company-dabbrev-code company-dabbrev)))
 
-      ;; configure javascript-tide checker to run after your default javascript checker
-      (flycheck-add-next-checker 'javascript-eslint 'javascript-tide 'append)))
+    ;; configure javascript-tide checker to run after your default javascript checker
+    (flycheck-add-next-checker 'javascript-eslint 'javascript-tide 'append)))
 
-  ;; js2-refactor: refactoring options for emacs
-  ;; https://github.com/magnars/js2-refactor.el
-  (use-package js2-refactor
+;; js2-refactor: refactoring options for emacs
+;; https://github.com/magnars/js2-refactor.el
+(use-package js2-refactor
   :ensure t
-    :after js2-mode
-    :bind
-    (:map js2-mode-map
-          ("C-k" . js2r-kill)
-          ("C-c h r" . js2-refactor-hydra/body))
-    :hook ((js2-mode . js2-refactor-mode))
-    :config (js2r-add-keybindings-with-prefix "C-c C-r")
+  :after js2-mode
+  :bind
+  (:map js2-mode-map
+        ("C-k" . js2r-kill)
+        ("C-c h r" . js2-refactor-hydra/body))
+  :hook ((js2-mode . js2-refactor-mode))
+  :config (js2r-add-keybindings-with-prefix "C-c C-r")
 
-    (defhydra js2-refactor-hydra (:color blue :hint nil)
-      "
+  (defhydra js2-refactor-hydra (:color blue :hint nil)
+    "
   ^Functions^                    ^Variables^               ^Buffer^                      ^sexp^               ^Debugging^
   ------------------------------------------------------------------------------------------------------------------------------
   [_lp_] Localize Parameter      [_ev_] Extract variable   [_wi_] Wrap buffer in IIFE    [_k_]  js2 kill      [_lt_] log this
@@ -1886,126 +1886,126 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
   [_tf_] Toggle fun exp and decl [_ag_] Add var to globals
   [_ta_] Toggle fun expr and =>  [_ti_] Ternary to if
   [_q_]  quit"
-      ("ee" js2r-expand-node-at-point)
-      ("cc" js2r-contract-node-at-point)
-      ("ef" js2r-extract-function)
-      ("em" js2r-extract-method)
-      ("tf" js2r-toggle-function-expression-and-declaration)
-      ("ta" js2r-toggle-arrow-function-and-expression)
-      ("ip" js2r-introduce-parameter)
-      ("lp" js2r-localize-parameter)
-      ("wi" js2r-wrap-buffer-in-iife)
-      ("ig" js2r-inject-global-in-iife)
-      ("ag" js2r-add-to-globals-annotation)
-      ("ev" js2r-extract-var)
-      ("iv" js2r-inline-var)
-      ("rv" js2r-rename-var)
-      ("vt" js2r-var-to-this)
-      ("ao" js2r-arguments-to-object)
-      ("ti" js2r-ternary-to-if)
-      ("sv" js2r-split-var-declaration)
-      ("ss" js2r-split-string)
-      ("uw" js2r-unwrap)
-      ("lt" js2r-log-this)
-      ("dt" js2r-debug-this)
-      ("sl" js2r-forward-slurp)
-      ("ba" js2r-forward-barf)
-      ("k" js2r-kill)
-      ("q" nil)))
+    ("ee" js2r-expand-node-at-point)
+    ("cc" js2r-contract-node-at-point)
+    ("ef" js2r-extract-function)
+    ("em" js2r-extract-method)
+    ("tf" js2r-toggle-function-expression-and-declaration)
+    ("ta" js2r-toggle-arrow-function-and-expression)
+    ("ip" js2r-introduce-parameter)
+    ("lp" js2r-localize-parameter)
+    ("wi" js2r-wrap-buffer-in-iife)
+    ("ig" js2r-inject-global-in-iife)
+    ("ag" js2r-add-to-globals-annotation)
+    ("ev" js2r-extract-var)
+    ("iv" js2r-inline-var)
+    ("rv" js2r-rename-var)
+    ("vt" js2r-var-to-this)
+    ("ao" js2r-arguments-to-object)
+    ("ti" js2r-ternary-to-if)
+    ("sv" js2r-split-var-declaration)
+    ("ss" js2r-split-string)
+    ("uw" js2r-unwrap)
+    ("lt" js2r-log-this)
+    ("dt" js2r-debug-this)
+    ("sl" js2r-forward-slurp)
+    ("ba" js2r-forward-barf)
+    ("k" js2r-kill)
+    ("q" nil)))
 
-  ;; prettier-emacs: minor-mode to prettify javascript files on save
-  ;; https://github.com/prettier/prettier-emacs
-  (use-package prettier-js
-:ensure t
-    :hook ((js2-mode . prettier-js-mode)
-           (rjsx-mode . prettier-js-mode)))
+;; prettier-emacs: minor-mode to prettify javascript files on save
+;; https://github.com/prettier/prettier-emacs
+(use-package prettier-js
+  :ensure t
+  :hook ((js2-mode . prettier-js-mode)
+         (rjsx-mode . prettier-js-mode)))
 
-  ;; json-snatcher: get the path of any JSON element easily
-  ;; https://github.com/Sterlingg/json-snatcher
-  (use-package json-snatcher
-:ensure t
-    :hook ((json-mode . js-mode-bindings))
-    :config
-    (defun js-mode-bindings ()
-      "Sets a hotkey for using the json-snatcher plugin"
-      (when (string-match  "\\.json$" (buffer-name))
-        (local-set-key (kbd "C-c C-g") 'jsons-print-path))))
+;; json-snatcher: get the path of any JSON element easily
+;; https://github.com/Sterlingg/json-snatcher
+(use-package json-snatcher
+  :ensure t
+  :hook ((json-mode . js-mode-bindings))
+  :config
+  (defun js-mode-bindings ()
+    "Sets a hotkey for using the json-snatcher plugin"
+    (when (string-match  "\\.json$" (buffer-name))
+      (local-set-key (kbd "C-c C-g") 'jsons-print-path))))
 
-  ;; indium: javascript awesome development environment
-  ;; https://github.com/NicolasPetton/indium
-  (use-package indium
-:ensure t
-    :after js2-mode
-    :bind (:map js2-mode-map
-                ("C-c C-l" . indium-eval-buffer))
-    :hook (((js2-mode typescript-mode) . indium-interaction-mode)))
+;; indium: javascript awesome development environment
+;; https://github.com/NicolasPetton/indium
+(use-package indium
+  :ensure t
+  :after js2-mode
+  :bind (:map js2-mode-map
+              ("C-c C-l" . indium-eval-buffer))
+  :hook (((js2-mode typescript-mode) . indium-interaction-mode)))
 
-  ;; mocha: emacs mode for running mocha tests
-  ;; https://github.com/scottaj/mocha.el
-  (use-package mocha
-:ensure t
-    :after js2-mode
-    :config
-    (require 'typescript-mode)
-    (dolist (m (list js2-mode-map typescript-mode-map))
-      (bind-keys
-       :map m
-       ("C-c m P" . mocha-test-project)
-       ("C-c m f" . mocha-test-file)
-       ("C-c m p" . mocha-test-at-point))))
+;; mocha: emacs mode for running mocha tests
+;; https://github.com/scottaj/mocha.el
+(use-package mocha
+  :ensure t
+  :after js2-mode
+  :config
+  (require 'typescript-mode)
+  (dolist (m (list js2-mode-map typescript-mode-map))
+    (bind-keys
+     :map m
+     ("C-c m P" . mocha-test-project)
+     ("C-c m f" . mocha-test-file)
+     ("C-c m p" . mocha-test-at-point))))
 
-  ;; mocha-snippets: snippets for mocha test framework
-  ;; https://github.com/cowboyd/mocha-snippets.el
-  (use-package mocha-snippets
-:ensure t)
+;; mocha-snippets: snippets for mocha test framework
+;; https://github.com/cowboyd/mocha-snippets.el
+(use-package mocha-snippets
+  :ensure t)
 
-  ;; Adds the node_modules/.bin directory to the buffer exec_path. E.g. support project local eslint installations.
-  ;; https://github.com/codesuki/add-node-modules-path/tree/master
-  (use-package add-node-modules-path
-:ensure t
-    :hook ((js2-mode . add-node-modules-path)
-           (rjsx-mode . add-node-modules-path)))
+;; Adds the node_modules/.bin directory to the buffer exec_path. E.g. support project local eslint installations.
+;; https://github.com/codesuki/add-node-modules-path/tree/master
+(use-package add-node-modules-path
+  :ensure t
+  :hook ((js2-mode . add-node-modules-path)
+         (rjsx-mode . add-node-modules-path)))
 
-  ;; json-mode: Major mode for editing JSON files with emacs
-  ;; https://github.com/joshwnj/json-mode
-  (use-package json-mode
-:ensure t
-    :mode "\\.js\\(?:on\\|[hl]int\\(rc\\)?\\)\\'"
-    :config
-    (add-hook 'json-mode-hook #'prettier-js-mode)
-    (setq json-reformat:indent-width 2)
-    (setq json-reformat:pretty-string? t)
-    (setq js-indent-level 2))
+;; json-mode: Major mode for editing JSON files with emacs
+;; https://github.com/joshwnj/json-mode
+(use-package json-mode
+  :ensure t
+  :mode "\\.js\\(?:on\\|[hl]int\\(rc\\)?\\)\\'"
+  :config
+  (add-hook 'json-mode-hook #'prettier-js-mode)
+  (setq json-reformat:indent-width 2)
+  (setq json-reformat:pretty-string? t)
+  (setq js-indent-level 2))
 
-  ;; eslintd-fix: Emacs minor-mode to automatically fix javascript with eslint_d.
-  ;; https://github.com/aaronjensen/eslintd-fix/tree/master
-  (use-package eslintd-fix
-:ensure t)
+;; eslintd-fix: Emacs minor-mode to automatically fix javascript with eslint_d.
+;; https://github.com/aaronjensen/eslintd-fix/tree/master
+(use-package eslintd-fix
+  :ensure t)
 
-  ;; rjsx-mode: A JSX major mode for Emacs
-  ;; https://github.com/felipeochoa/rjsx-mode
-  (use-package rjsx-mode
-:ensure t
-    :after js2-mode
-    :mode (("\\.jsx$" . rjsx-mode)
-           ("components/.+\\.js$" . rjsx-mode))
-    :hook (rjsx-mode . (lambda ()
-                            (flycheck-mode)
-                            (my-tide-setup-hook)
-                            (company-mode)
-                            (indium-interaction-mode -1)
-                            (js2-refactor-mode -1)))
-    :init
-    (defun +javascript-jsx-file-p ()
-      "Detect React or preact imports early in the file."
-      (and buffer-file-name
-           (string= (file-name-extension buffer-file-name) "js")
-           (re-search-forward "\\(^\\s-*import +React\\|\\( from \\|require(\\)[\"']p?react\\)"
-                              magic-mode-regexp-match-limit t)
-           (progn (goto-char (match-beginning 1))
-                  (not (sp-point-in-string-or-comment)))))
-    (add-to-list 'magic-mode-alist '(+javascript-jsx-file-p . rjsx-mode))
-    :config (unbind-key "C-c C-l" rjsx-mode-map))
+;; rjsx-mode: A JSX major mode for Emacs
+;; https://github.com/felipeochoa/rjsx-mode
+(use-package rjsx-mode
+  :ensure t
+  :after js2-mode
+  :mode (("\\.jsx$" . rjsx-mode)
+         ("components/.+\\.js$" . rjsx-mode))
+  :hook (rjsx-mode . (lambda ()
+                       (flycheck-mode)
+                       (my-tide-setup-hook)
+                       (company-mode)
+                       (indium-interaction-mode -1)
+                       (js2-refactor-mode -1)))
+  :init
+  (defun +javascript-jsx-file-p ()
+    "Detect React or preact imports early in the file."
+    (and buffer-file-name
+         (string= (file-name-extension buffer-file-name) "js")
+         (re-search-forward "\\(^\\s-*import +React\\|\\( from \\|require(\\)[\"']p?react\\)"
+                            magic-mode-regexp-match-limit t)
+         (progn (goto-char (match-beginning 1))
+                (not (sp-point-in-string-or-comment)))))
+  (add-to-list 'magic-mode-alist '(+javascript-jsx-file-p . rjsx-mode))
+  :config (unbind-key "C-c C-l" rjsx-mode-map))
 #+END_SRC
 *** Web mode
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -2128,38 +2128,38 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
 *** Python
 #+BEGIN_SRC emacs-lisp :tangle yes
 
-  (use-package pyenv-mode
-    :ensure t
-    :config
-    (pyenv-mode))
-  (use-package company-jedi :ensure t)
-  (use-package elpy
-    :ensure t
-    :config
-    (elpy-enable)
-    ;; Enable Flycheck
-    (when (require 'flycheck nil t)
-      (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
-      (add-hook 'elpy-mode-hook 'flycheck-mode))
-    (use-package py-autopep8 :ensure t)
-    (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
-    ;; Use IPython for REPL
-    (setq python-shell-interpreter "jupyter"
-      python-shell-interpreter-args "console --simple-prompt"
-      python-shell-prompt-detect-failure-warning nil)
-    (add-to-list 'python-shell-completion-native-disabled-interpreters
-             "jupyter"))
-  (use-package eglot :ensure t)
-  (defun ssbb-pyenv-hook ()
-    "Automatically activates pyenv version if .python-version file exists."
-    (f-traverse-upwards
-     (lambda (path)
-       (let ((pyenv-version-path (f-expand ".python-version" path)))
-         (if (f-exists? pyenv-version-path)
-             (pyenv-mode-set (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
-  (add-hook 'find-file-hook 'ssbb-pyenv-hook)
-  (use-package blacken :ensure t)
+(use-package pyenv-mode
+  :ensure t
+  :config
+  (pyenv-mode))
+(use-package company-jedi :ensure t)
+(use-package elpy
+  :ensure t
+  :config
+  (elpy-enable)
+  ;; Enable Flycheck
+  (when (require 'flycheck nil t)
+    (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
+    (add-hook 'elpy-mode-hook 'flycheck-mode))
   (use-package py-autopep8 :ensure t)
+  (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
+  ;; Use IPython for REPL
+  (setq python-shell-interpreter "ipython"
+        python-shell-interpreter-args "console --simple-prompt"
+        python-shell-prompt-detect-failure-warning nil)
+  (add-to-list 'python-shell-completion-native-disabled-interpreters
+               "ipython"))
+(use-package eglot :ensure t)
+(defun ssbb-pyenv-hook ()
+  "Automatically activates pyenv version if .python-version file exists."
+  (f-traverse-upwards
+   (lambda (path)
+     (let ((pyenv-version-path (f-expand ".python-version" path)))
+       (if (f-exists? pyenv-version-path)
+           (pyenv-mode-set (s-trim (f-read-text pyenv-version-path 'utf-8))))))))
+(add-hook 'find-file-hook 'ssbb-pyenv-hook)
+(use-package blacken :ensure t)
+(use-package py-autopep8 :ensure t)
 #+END_SRC
 *** C and C++
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -2228,17 +2228,13 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
               ("M-." . elisp-def)
               ("M-," . xref-pop-marker-stack)))
 #+END_SRC
-** Smarty pants tabs
+** Tabs Vs. Spaces
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package smart-tabs-mode
-    :ensure t
-    :config
-    (smart-tabs-insinuate 'c 'javascript 'python)
-    (smart-tabs-advice python-indent-line-1 python-indent)
-    (add-hook 'python-mode-hook
-              (lambda ()
-                (setq indent-tabs-mode t)
-                (setq tab-width (default-value 'tab-width)))))
+(setq tab-width 2)
+(use-package smart-tabs-mode
+  :ensure t
+  :config
+  (smart-tabs-insinuate 'c 'javascript 'python))
 #+END_SRC
 ** Helm
 There are many helm things. I use it a lot.
@@ -2712,7 +2708,7 @@ bindings I use more frequently:
 ** Spacemacs theme
 #+BEGIN_SRC emacs-lisp :tangle yes
 (install-pkgs '(spacemacs-theme))
-;(load-theme 'spacemacs-light)
+                                        ;(load-theme 'spacemacs-light)
 #+END_SRC
 ** Groovy
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -2736,26 +2732,26 @@ Setup some awesome dired defaults
     (add-to-list 'dired-omit-extensions ".DS_Store"))
   (customize-set-variable 'diredp-hide-details-initially-flag nil)
   (use-package dired-aux
-        :init
-        (use-package dired-async
-          :ensure async))
-      (put 'dired-find-alternate-file 'disabled nil)
-      (setq ls-lisp-dirs-first t
-            dired-recursive-copies 'always
-            dired-recursive-deletes 'always
-            dired-dwim-target t
-            ;; -F marks links with @
-            dired-ls-F-marks-symlinks t
-            delete-by-moving-to-trash t
-            ;; Don't auto refresh dired
-            global-auto-revert-non-file-buffers nil
-            wdired-allow-to-change-permissions t)
-      (define-key dired-mode-map (kbd "C-M-u") #'dired-up-directory)
-      (define-key dired-mode-map (kbd "M-o") #'my/dired-open)
-      (define-key dired-mode-map (kbd "C-x C-q") #'wdired-change-to-wdired-mode)
-      (bind-key "l" #'dired-up-directory dired-mode-map)
-      (bind-key "M-!" #'async-shell-command dired-mode-map)
-      (add-hook 'dired-mode-hook #'my/dired-mode-hook))
+    :init
+    (use-package dired-async
+      :ensure async))
+  (put 'dired-find-alternate-file 'disabled nil)
+  (setq ls-lisp-dirs-first t
+        dired-recursive-copies 'always
+        dired-recursive-deletes 'always
+        dired-dwim-target t
+        ;; -F marks links with @
+        dired-ls-F-marks-symlinks t
+        delete-by-moving-to-trash t
+        ;; Don't auto refresh dired
+        global-auto-revert-non-file-buffers nil
+        wdired-allow-to-change-permissions t)
+  (define-key dired-mode-map (kbd "C-M-u") #'dired-up-directory)
+  (define-key dired-mode-map (kbd "M-o") #'my/dired-open)
+  (define-key dired-mode-map (kbd "C-x C-q") #'wdired-change-to-wdired-mode)
+  (bind-key "l" #'dired-up-directory dired-mode-map)
+  (bind-key "M-!" #'async-shell-command dired-mode-map)
+  (add-hook 'dired-mode-hook #'my/dired-mode-hook))
 #+END_SRC
 
 Quickly preview the things under the cursor
@@ -2808,32 +2804,32 @@ configuration.")
 
 (defvar my-ediff-awin-config nil "Window configuration after ediff.")
 (defcustom my-ediff-awin-reg ?e
-      "*Register to be used to hold `my-ediff-awin-config' window
+  "*Register to be used to hold `my-ediff-awin-config' window
     configuration.")
 
-    (defun my-ediff-bsh ()
-      "Function to be called before any buffers or window setup for
+(defun my-ediff-bsh ()
+  "Function to be called before any buffers or window setup for
     ediff."
-      (setq my-ediff-bwin-config (current-window-configuration))
-      (when (characterp my-ediff-bwin-reg)
-    	(set-register my-ediff-bwin-reg
-    		      (list my-ediff-bwin-config (point-marker)))))
+  (setq my-ediff-bwin-config (current-window-configuration))
+  (when (characterp my-ediff-bwin-reg)
+    (set-register my-ediff-bwin-reg
+    		  (list my-ediff-bwin-config (point-marker)))))
 
-    (defun my-ediff-ash ()
-      "Function to be called after buffers and window setup for ediff."
-      (setq my-ediff-awin-config (current-window-configuration))
-      (when (characterp my-ediff-awin-reg)
-    	(set-register my-ediff-awin-reg
-    		      (list my-ediff-awin-config (point-marker)))))
+(defun my-ediff-ash ()
+  "Function to be called after buffers and window setup for ediff."
+  (setq my-ediff-awin-config (current-window-configuration))
+  (when (characterp my-ediff-awin-reg)
+    (set-register my-ediff-awin-reg
+    		  (list my-ediff-awin-config (point-marker)))))
 
-    (defun my-ediff-qh ()
-      "Function to be called when ediff quits."
-      (when my-ediff-bwin-config
-    	(set-window-configuration my-ediff-bwin-config)))
+(defun my-ediff-qh ()
+  "Function to be called when ediff quits."
+  (when my-ediff-bwin-config
+    (set-window-configuration my-ediff-bwin-config)))
 
-    (add-hook 'ediff-before-setup-hook 'my-ediff-bsh)
-    (add-hook 'ediff-after-setup-windows-hook 'my-ediff-ash 'append)
-    (add-hook 'ediff-quit-hook 'my-ediff-qh)
+(add-hook 'ediff-before-setup-hook 'my-ediff-bsh)
+(add-hook 'ediff-after-setup-windows-hook 'my-ediff-ash 'append)
+(add-hook 'ediff-quit-hook 'my-ediff-qh)
 #+END_SRC
 ** Skeleton Code
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -3034,15 +3030,15 @@ CANCELLED --> [*]
 TODO: t
 NEXT: n
 note right of NEEDSREVIEW: Note records\nlocation of review
-        NEEDSREVIEW: N
-        DONE: d
-        note right of WAITING: Note records\nwhat it is waiting for
-                WAITING:w
-                note right of HOLD: Note records\nwhy it is on hold
-                        HOLD:h
-                        note right of CANCELLED: Note records\nwhy it was cancelled
-                                CANCELLED:c
-                                WAITING --> DONE
+NEEDSREVIEW: N
+DONE: d
+note right of WAITING: Note records\nwhat it is waiting for
+WAITING:w
+note right of HOLD: Note records\nwhy it is on hold
+HOLD:h
+note right of CANCELLED: Note records\nwhy it was cancelled
+CANCELLED:c
+WAITING --> DONE
 #+END_SRC
 
 **** Project Task States
@@ -5739,8 +5735,8 @@ Setup some nice settings for eshell
           (interactive "p")
           (re-search-forward eshell-prompt-regexp nil t n)
           (when eshell-highlight-prompt
-          (while (not (get-text-property (line-beginning-position) 'read-only))
-            (re-search-forward eshell-prompt-regexp nil t n)))
+            (while (not (get-text-property (line-beginning-position) 'read-only))
+              (re-search-forward eshell-prompt-regexp nil t n)))
           (eshell-skip-prompt))
 
         (defun eshell-previous-prompt (n)
@@ -5865,9 +5861,9 @@ Setup some nice settings for eshell
     (magit-status default-directory)
     nil))
 
-  (use-package esh-autosuggest
-    :ensure t
-    :hook (eshell-mode . esh-autosuggest-mode))
+(use-package esh-autosuggest
+  :ensure t
+  :hook (eshell-mode . esh-autosuggest-mode))
 #+END_SRC
 
 Create eshell buffers with the press of a button
@@ -5975,8 +5971,8 @@ Quickly close eshell window
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun eshell/x ()
   "Closes the EShell session and gets rid of the EShell window."
-   (delete-window)
-   (eshell/exit))
+  (delete-window)
+  (eshell/exit))
 #+END_SRC
 ** Sunrise Commander
 File management at it's best
