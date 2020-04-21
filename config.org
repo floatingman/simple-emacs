@@ -160,7 +160,7 @@ Just copying this verbose now
 
 (setq
    ;;;   Node.js path from nvm
- exec-path (append exec-path '("~/.nvm/versions/node/v8.11.2/bin"))
+ exec-path (append exec-path '("~/.nvm/versions/node/v8.17.1/bin"))
 
    ;;;   User details
  user-mail-address "dwnewman78@gmail.com"
@@ -667,7 +667,14 @@ Mac OSX
 When using Homebrew, install it using \"brew install trash\"."
     (call-process (executable-find "trash")
                   nil 0 nil
-                  file)))
+                  file))
+  (setq mac-option-key-is-meta nil
+        mac-command-key-is-meta t
+        mac-command-modifier 'meta
+        mac-option-modifier nil
+        ns-command-modifier 'meta
+        ns-option-modifier nil)
+  )
 #+END_SRC
 ** God Mode
 An alternative to GAAAWWWWWWWWWWWD mode
@@ -2127,11 +2134,18 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
 #+END_SRC
 *** Python
 #+BEGIN_SRC emacs-lisp :tangle yes
-
 (use-package pyenv-mode
   :ensure t
   :config
-  (pyenv-mode))
+  (pyenv-mode)
+  (defun projectile-pyenv-mode-set ()
+    "Set pyenv version matching project name."
+    (let ((project (projectile-project-name)))
+      (if (member project (pyenv-mode-versions))
+          (pyenv-mode-set project)
+        (pyenv-mode-unset))))
+  (add-hook 'projectile-after-switch-project-hook 'projectile-pyenv-mode-set))
+
 (use-package company-jedi :ensure t)
 (use-package elpy
   :ensure t
@@ -2152,6 +2166,12 @@ Trying out a config from [[https://github.com:CSRaghunandan/.emacs.d][CSRaghunan
 (use-package eglot :ensure t)
 (use-package blacken :ensure t)
 (use-package py-autopep8 :ensure t)
+(use-package pipenv
+  :hook (python-mode . pipenv-mode)
+  :init
+  (setq
+   pipenv-projectile-after-switch-function
+   #'pipenv-projectile-after-switch-extended))
 #+END_SRC
 *** C and C++
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -2918,7 +2938,7 @@ Global bindings
 (when (file-exists-p "~/personal/org")
   (setq org-agenda-files `(,(file-truename "~/personal/org/refile.org")
                            ,(file-truename "~/personal/org/todo.org")
-                           ,(file-truename "~/personal/org/digitalreasoning.org")
+                           ,(file-truename "~/personal/org/xoi.org")
                            ,(file-truename "~/personal/org/learning.org")
                            ,(file-truename "~/personal/org/gratitude.org")
                            ,(file-truename "~/personal/org/notes.org")
@@ -3802,7 +3822,7 @@ I have the following org-mode settings for clocking:
           (when bh/keep-clock-running
             (bh/clock-in-default-task)))))))
 
-(defvar bh/organization-task-id "eb155a82-92b2-4f25-a3c6-0304591af2f9")
+(defvar bh/organization-task-id "853346CE-4074-414F-8C11-7C5AED800253")
 
 (defun bh/clock-in-organization-task-as-default ()
   (interactive)
@@ -4891,8 +4911,7 @@ to use the development (read: local) version of it when available.
  'org-babel-load-languages
  '((emacs-lisp . t)
    (shell . t)
-   (ruby . t)
-   (python . t)))
+   (ruby . t)))
 
 ;; this is where Fedora installs it, YMMV
 (setq org-plantuml-jar-path "~/personal/bin/plantuml.jar")
@@ -4910,8 +4929,8 @@ to use the development (read: local) version of it when available.
              '(:shebang . "#!/usr/bin/env bash"))
 
 ;; add a default shebang header argument for python
-(add-to-list 'org-babel-default-header-args:python
-             '(:shebang . "#!/usr/bin/env python"))
+;;(add-to-list 'org-babel-default-header-args:python
+  ;;           '(:shebang . "#!/usr/bin/env python"))
 
 ;; Make babel results blocks lowercase
 (setq org-babel-results-keyword "results")
@@ -4932,11 +4951,12 @@ to use the development (read: local) version of it when available.
 Allow asynchronously executing org-babel blocks. Sometimes I run long-running
 babel executions, and this allows Emacs not to hang while executing them
 #+BEGIN_SRC emacs-lisp :tangle yes
-(eval-after-load "org"
-  (use-package ob-async
-    :ensure t
-    :disabled t
-    :init (require 'ob-async)))
+  (eval-after-load "org"
+    (use-package ob-
+      async
+      :ensure t
+      :disabled t
+      :init (require 'ob-async)))
 #+END_SRC
 
 *** Reminders
@@ -5509,12 +5529,13 @@ I use deft to take quick notes and search through those notes
 (use-package deft
   :ensure t
   :bind ("C-x t" . deft)
-  :config
-  (setq deft-extension '("org" "txt" "tex" "text" "md")
-        deft-directory "~/personal/org/deft/"
-        deft-recursive t
-        deft-use-filter-string-for-filename t
-        deft-text-mode 'org-mode))
+  :config (setq deft-directory "~/personal/org/deft/"
+                deft-extensions '("org", "md")
+                deft-default-extension "org"
+                deft-recursive t
+                deft-org-mode-title-prefix t
+                deft-use-filter-string-for-filename t
+                deft-text-mode 'org-mode))
 #+END_SRC
 *** More Configuration from Brent
 
